@@ -1,0 +1,2333 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width,initial-scale=1" name="viewport">
+    <title>UI Editor v2.18</title>
+    <script src="https://cdn.tailwindcss.com/3.4.1"></script>
+    <link href="https://fonts.googleapis.com.rproxy.goskope.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link href="https://fonts.googleapis.com.rproxy.goskope.com/css2?family=Fira+Code&display=swap" rel="stylesheet">
+    <style>
+        :root,
+        body.light-mode {
+            --accent-color: #3B82F6
+        }
+
+        .guide-content code,
+        .list-item,
+        .texture-item,
+        .texture-user-item,
+        .tooltip {
+            font-family: 'Fira Code', monospace
+        }
+
+        .list-item.selected,
+        .xml-cluster-header,
+        body {
+            color: var(--text-primary)
+        }
+
+        body,
+        main {
+            display: flex
+        }
+
+        #context-menu,
+        .list-item,
+        .tab-btn.active,
+        .texture-item,
+        body.light-mode .list-item,
+        main {
+            background-color: var(--bg-secondary)
+        }
+
+        :root {
+            --bg-primary: #111827;
+            --bg-secondary: #1f2937;
+            --bg-tertiary: #374151;
+            --border-color: #4b5563;
+            --text-primary: #ffffff;
+            --text-secondary: #9ca3af
+        }
+
+        body.light-mode {
+            --bg-primary: #f3f4f6;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #e5e7eb;
+            --border-color: #d1d5db;
+            --text-primary: #111827;
+            --text-secondary: #4b5563
+        }
+
+        body,
+        html {
+            height: 100vh;
+            overflow: hidden
+        }
+
+        body {
+            font-family: Inter, sans-serif;
+            background-color: var(--bg-primary);
+            flex-direction: column;
+            padding: 1.5rem
+        }
+
+        main {
+            flex-grow: 1;
+            min-height: 0;
+            flex-direction: column;
+            gap: 1.5rem
+        }
+
+        #main-grid {
+            flex-grow: 1;
+            min-height: 0
+        }
+
+        #texture-editor-canvas,
+        #viewerCanvas {
+            background-color: var(--bg-tertiary);
+            background-size: 20px 20px;
+            position: absolute;
+            border: 1px solid var(--border-color);
+            transform-origin: top left;
+            background-image: none !important
+        }
+
+        .ui-element {
+            position: absolute;
+            box-sizing: border-box;
+            background-repeat: no-repeat;
+            transition: outline .1s ease-in-out
+        }
+
+        .ui-element.highlight {
+            outline: 2px solid var(--accent-color) !important
+        }
+
+        .ui-element.persistent-border {
+            outline: rgba(251, 191, 36, .5) dashed 1px
+        }
+
+        .list-item {
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            user-select: none;
+            border: 1px solid transparent;
+            transition: background-color .2s, border-color .2s, color .2s
+        }
+
+        .list-item:hover,
+        .texture-item:hover,
+        body.light-mode .list-item:hover {
+            border-color: var(--accent-color)
+        }
+
+        .hierarchy-item .prop {
+            color: #a78bfa
+        }
+
+        .hierarchy-item .val {
+            color: #fbbf24
+        }
+
+        .hierarchy-item .size {
+            color: #6ee7b7
+        }
+
+        .hierarchy-item .coords {
+            color: #93c5fd
+        }
+
+        .xml-cluster-header,
+        .xml-subcluster-header {
+            cursor: pointer;
+            padding: 6px 8px;
+            border-radius: 4px;
+            user-select: none;
+            transition: background-color .2s
+        }
+
+        .xml-cluster-header {
+            font-weight: 700;
+            font-size: 14px;
+            background-color: var(--bg-tertiary);
+            margin-top: 8px
+        }
+
+        .xml-subcluster-header {
+            font-weight: 500;
+            font-size: 13px;
+            color: var(--text-secondary);
+            padding-left: 1.5rem
+        }
+
+        .toolbar-btn:hover:not(:disabled),
+        .xml-cluster-header:hover,
+        .xml-subcluster-header:hover,
+        body.light-mode .toolbar-btn:hover:not(:disabled) {
+            background-color: var(--border-color)
+        }
+
+        .xml-file-item.grouped {
+            padding-left: 2.5rem
+        }
+
+        .modal-overlay {
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center
+        }
+
+        .hidden {
+            display: none !important
+        }
+
+        #folder-info-container.folder-selected,
+        .input-label {
+            display: block
+        }
+
+        #context-menu {
+            position: fixed;
+            z-index: 100;
+            border: 1px solid var(--border-color);
+            border-radius: .5rem;
+            padding: .5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, .1), 0 4px 6px -2px rgba(0, 0, 0, .05)
+        }
+
+        .context-menu-item {
+            padding: .5rem 1rem;
+            cursor: pointer;
+            border-radius: .25rem
+        }
+
+        .context-menu-item:hover {
+            background-color: var(--bg-tertiary)
+        }
+
+        #ruler-canvas,
+        #texture-ruler-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            transform-origin: top left
+        }
+
+        .tooltip {
+            position: fixed;
+            pointer-events: none;
+            background-color: rgba(0, 0, 0, .8);
+            color: #fff;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            z-index: 2000
+        }
+
+        .tooltip hr {
+            border-color: #6b7280;
+            margin: 4px 0;
+        }
+
+        .color-input {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            width: 2rem;
+            height: 1.5rem;
+            background-color: transparent;
+            border: none;
+            cursor: pointer
+        }
+
+        .color-input::-webkit-color-swatch {
+            border-radius: .25rem;
+            border: 1px solid var(--border-color)
+        }
+
+        .color-input::-moz-color-swatch {
+            border-radius: .25rem;
+            border: 1px solid var(--border-color)
+        }
+
+        .prop-editor-input {
+            background-color: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: .25rem .5rem;
+            border-radius: .25rem;
+            width: 100%
+        }
+
+        .tab-btn,
+        .toolbar-btn {
+            color: var(--text-secondary);
+            font-weight: 500
+        }
+
+        .toolbar-btn {
+            background-color: var(--bg-tertiary);
+            padding: .25rem .75rem;
+            border-radius: .375rem;
+            border: 1px solid var(--border-color);
+            font-size: .75rem
+        }
+
+        .resizer-x,
+        .resizer-y {
+            background-color: var(--border-color);
+            transition: background-color .2s ease-in-out;
+            border-radius: 3px;
+            user-select: none
+        }
+
+        .toolbar-btn:disabled {
+            opacity: .5;
+            cursor: not-allowed
+        }
+
+        .resizer-x {
+            flex-shrink: 0;
+            width: 6px;
+            cursor: col-resize
+        }
+
+        .resizer-x.dragging,
+        .resizer-x:hover,
+        .resizer-y.dragging,
+        .resizer-y:hover {
+            background-color: var(--accent-color)
+        }
+
+        .resizer-y {
+            flex-shrink: 0;
+            height: 6px;
+            cursor: row-resize
+        }
+
+        #folder-info-container {
+            display: none
+        }
+
+        .tab-btn {
+            padding: .5rem 1rem;
+            background-color: transparent;
+            border: 1px solid transparent;
+            border-top: 2px solid transparent;
+            border-bottom: none;
+            cursor: pointer;
+            border-radius: .375rem .375rem 0 0;
+            margin-bottom: -1px
+        }
+
+        .texture-item,
+        .texture-user-item {
+            padding: 4px 8px;
+            cursor: pointer;
+            transition: background-color .2s, border-color .2s
+        }
+
+        .tab-btn.active {
+            border-color: var(--border-color);
+            border-top-color: var(--accent-color);
+            color: var(--text-primary)
+        }
+
+        .tab-btn:not(.active):hover,
+        body.light-mode .tab-btn:not(.active):hover {
+            background-color: var(--bg-tertiary);
+            color: var(--text-primary)
+        }
+
+        .texture-item {
+            font-size: 11px;
+            border-radius: 4px;
+            user-select: none;
+            border: 1px solid transparent
+        }
+
+        .texture-item-name {
+            color: var(--text-primary);
+            font-weight: 500;
+            word-break: break-all
+        }
+
+        .texture-item-users {
+            margin-top: .25rem;
+            font-size: 10px;
+            color: var(--text-secondary);
+            word-break: break-all
+        }
+
+        .input-label {
+            font-size: .7rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: .25rem;
+            text-transform: uppercase
+        }
+
+        #fullscreenPreviewModal .ui-element {
+            outline: 0 !important
+        }
+
+        #fullscreenPreviewContent>div {
+            transform-origin: center center
+        }
+
+        .texture-user-item {
+            border-radius: 4px;
+            font-size: 12px;
+            border: 1px solid transparent
+        }
+
+        .texture-user-item.highlighted,
+        .texture-user-item:hover {
+            border-color: var(--accent-color);
+            background-color: var(--bg-tertiary)
+        }
+
+        body.light-mode {
+            --bg-primary: #f9fafb;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f3f4f6;
+            --border-color: #d1d5db;
+            --text-primary: #1f2937;
+            --text-secondary: #6b7280;
+            --accent-color-hover: #2563EB;
+            --green-color: #16A34A;
+            --green-color-hover: #15803D
+        }
+
+        body.light-mode .bg-gray-800,
+        body.light-mode main {
+            background-color: var(--bg-primary) !important
+        }
+
+        body.light-mode .bg-gray-900 {
+            background-color: var(--bg-secondary) !important
+        }
+
+        body.light-mode .bg-gray-700,
+        body.light-mode .prop-editor-input,
+        body.light-mode input[type=number],
+        body.light-mode input[type=text] {
+            background-color: var(--bg-tertiary) !important
+        }
+
+        body.light-mode .border,
+        body.light-mode .border-gray-600 {
+            border-color: var(--border-color) !important
+        }
+
+        body.light-mode,
+        body.light-mode .text-gray-200,
+        body.light-mode .text-gray-300,
+        body.light-mode .text-white {
+            color: var(--text-primary) !important
+        }
+
+        body.light-mode .input-label,
+        body.light-mode .text-gray-400,
+        body.light-mode .text-gray-500 {
+            color: var(--text-secondary) !important
+        }
+
+        body.light-mode .toolbar-btn {
+            background-color: var(--bg-tertiary);
+            color: var(--text-secondary);
+            border-color: var(--border-color)
+        }
+
+        body.light-mode .bg-blue-600,
+        body.light-mode .list-item.selected {
+            background-color: var(--accent-color) !important;
+            color: #fff !important
+        }
+
+        body.light-mode .bg-blue-600:hover,
+        body.light-mode .hover\:bg-blue-700:hover {
+            background-color: var(--accent-color-hover) !important
+        }
+
+        body.light-mode .bg-green-600 {
+            background-color: var(--green-color) !important;
+            color: #fff !important
+        }
+
+        body.light-mode .bg-green-600:hover,
+        body.light-mode .hover\:bg-green-700:hover {
+            background-color: var(--green-color-hover) !important
+        }
+
+        body.light-mode .list-item.selected .coords,
+        body.light-mode .list-item.selected .prop,
+        body.light-mode .list-item.selected .size,
+        body.light-mode .list-item.selected .val {
+            color: #fff !important
+        }
+
+        body.light-mode .tab-btn {
+            color: var(--text-secondary)
+        }
+
+        body.light-mode .tab-btn.active {
+            background-color: var(--accent-color) !important;
+            color: #fff !important;
+            border-color: var(--accent-color) !important
+        }
+
+        .modal-overlay {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, .7);
+            z-index: 1000
+        }
+
+        .guide-content {
+            background-color: #1f2937;
+            padding: 2rem;
+            border-radius: .75rem;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            color: #e5e7eb
+        }
+
+        .guide-content h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: #fff
+        }
+
+        .guide-content h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-top: 1.5rem;
+            margin-bottom: .5rem;
+            color: #d1d5db
+        }
+
+        .guide-content p {
+            margin-bottom: 1rem;
+            line-height: 1.6
+        }
+
+        .guide-content code {
+            background-color: #374151;
+            padding: .2rem .4rem;
+            border-radius: .25rem
+        }
+
+        .guide-content ul {
+            list-style-type: disc;
+            padding-left: 1.5rem;
+            margin-bottom: 1rem
+        }
+
+        .version-item {
+            padding-left: 1rem;
+            color: #9ca3af
+        }
+
+        .version-item:hover {
+            color: #fff;
+            background-color: #3b82f6
+        }
+
+        /* Added styles for backup/restore feature */
+        .backup-list {
+            padding-left: 1rem;
+            margin-top: 5px;
+            border-left: 2px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding-top: 5px;
+            padding-bottom: 5px;
+        }
+
+        .backup-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 2px 8px;
+            font-size: 11px;
+            border-radius: 4px;
+            margin-left: 0.5rem;
+        }
+
+        .backup-item:hover {
+            background-color: var(--bg-tertiary);
+        }
+
+        .restore-btn {
+            background-color: #3B82F6;
+            /* Using accent color */
+            color: white;
+            border: none;
+            padding: 3px 8px;
+            font-size: 10px;
+            font-weight: 600;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            flex-shrink: 0;
+            margin-left: 8px;
+        }
+
+        .restore-btn:hover {
+            background-color: #2563EB;
+        }
+    </style>
+</head>
+
+<body class="text-white">
+    <main class="rounded-xl bg-gray-800 p-6 shadow-2xl">
+        <div class="flex items-center flex-col h-full justify-center text-center" id="startup-screen">
+            <h1 class="font-bold mb-4 text-4xl">UI Editor v2.18</h1>
+            <p class="text-gray-400 mb-8">Select the game UI folder e.g. <b>C:\...\Grand Fantasia\UI</b>.</p>
+            <button
+                class="rounded-lg font-semibold bg-blue-600 hover:bg-blue-700 duration-300 transition-all px-6 py-3 text-lg"
+                id="startupSelectFolderBtn"
+                title="Click to select the root 'UI' folder of your Grand Fantasia game client.">Select UI
+                Folder</button>
+        </div>
+        <div class="flex flex-grow min-h-0 flex-row gap-2 hidden" id="main-grid">
+            <div class="flex flex-col flex-shrink-0 gap-2" id="left-column" style="flex-basis:302px">
+                <div class="flex-shrink-0" id="folder-info-container">
+                    <p class="text-sm text-gray-400 mb-2 text-center truncate" id="folderPath" title="Selected Folder">
+                    </p>
+                    <button
+                        class="text-sm bg-blue-600 duration-300 font-semibold hover:bg-blue-700 px-4 py-2 rounded-lg transition-all w-full"
+                        id="changeFolderBtn" title="Select a different UI folder.">Change Folder</button>
+                </div>
+                <div class="flex flex-col p-4 rounded-lg bg-gray-900 min-h-0 flex-grow">
+                    <div class="flex items-center justify-between flex-shrink-0 mb-2">
+                        <h2 class="text-gray-200 font-semibold text-xl">XML Files</h2>
+                        <div class="flex items-center space-x-2">
+                            <label class="text-sm text-gray-400" for="groupToggle"
+                                title="Group XML files by their function (e.g., System, Character).">Group</label>
+                            <input
+                                class="rounded bg-gray-700 border-gray-600 form-checkbox h-4 text-blue-600 w-4 focus:ring-blue-500"
+                                id="groupToggle" type="checkbox" checked>
+                        </div>
+                    </div>
+                    <input class="flex-shrink-0 mb-2 bg-gray-700 border border-gray-600 p-2 rounded-md w-full"
+                        id="xmlSearch" placeholder="Search files..." title="Search for specific XML files by name.">
+                    <div class="overflow-y-auto space-y-1 flex-grow min-h-0" id="xmlList"></div>
+                </div>
+                <div class="resizer-y" id="resizer-vertical"></div>
+                <div class="flex flex-col p-4 rounded-lg bg-gray-900 min-h-0" id="texture-inspector-card">
+                    <h2 class="flex-shrink-0 font-semibold mb-3 text-gray-200 text-xl">Texture Inspector</h2>
+                    <div class="overflow-y-auto space-y-1" id="textureList"
+                        title="Lists all textures used in the selected XML file."></div>
+                </div>
+            </div>
+            <div class="resizer-x" id="resizer-left"></div>
+            <div class="flex flex-col flex-grow gap-4 min-w-0" id="center-column">
+                <div
+                    class="flex items-center justify-between flex-shrink-0 bg-gray-900 flex-wrap gap-y-2 p-2 rounded-lg">
+                    <div class="flex items-center flex-wrap space-x-4">
+                        <div class="flex items-center space-x-2 p-1">
+                            <input class="rounded bg-gray-700 border-gray-600 form-checkbox h-4 text-blue-600 w-4"
+                                id="swapWH" type="checkbox" checked
+                                title="Swap Width and Height values for elements, useful for fixing orientation issues.">
+                            <label class="text-sm text-gray-300" for="swapWH">Swap W/H</label>
+                        </div>
+                        <div class="flex items-center space-x-2 p-1">
+                            <input class="rounded bg-gray-700 border-gray-600 form-checkbox h-4 text-blue-600 w-4"
+                                id="rulerTool" type="checkbox" checked
+                                title="Show rulers and coordinate tooltips on the canvas."> <label
+                                class="text-sm text-gray-300" for="rulerTool">Ruler</label>
+                        </div>
+                        <div class="flex items-center space-x-2 p-1">
+                            <input class="rounded bg-gray-700 border-gray-600 form-checkbox h-4 text-blue-600 w-4"
+                                id="borderToggle" type="checkbox" checked
+                                title="Display borders around all UI elements for better visibility."> <label
+                                class="text-sm text-gray-300" for="borderToggle">Borders</label>
+                        </div>
+                        <div class="flex items-center space-x-2 p-1">
+                            <input class="rounded bg-gray-700 border-gray-600 form-checkbox h-4 text-blue-600 w-4"
+                                id="animatedBorders" type="checkbox"
+                                title="Animate the border of the selected texture area in the Texture Viewer."> <label
+                                class="text-sm text-gray-300" for="animatedBorders">Animate Border</label>
+                        </div>
+                        <div class="flex items-center space-x-2 p-1">
+                            <input class="rounded bg-gray-700 border-gray-600 form-checkbox h-4 text-blue-600 w-4"
+                                id="stretchUV" type="checkbox"
+                                title="Stretch the texture to fit the element's dimensions." checked> <label
+                                class="text-sm text-gray-300" for="stretchUV">Stretch UV</label>
+                        </div>
+                        <div class="h-4 border-gray-600 border-l mx-2"></div>
+                        <div class="flex items-center space-x-2 p-1">
+                            <label class="text-sm" for="canvasWidth">Canvas:</label>
+                            <input class="text-sm bg-gray-700 p-1 rounded w-16" id="canvasWidth" type="number"
+                                placeholder="W" title="Set the width of the main viewing canvas.">
+                            <span class="text-gray-500">x</span>
+                            <input class="text-sm bg-gray-700 p-1 rounded w-16" id="canvasHeight" type="number"
+                                placeholder="H" title="Set the height of the main viewing canvas.">
+                        </div>
+                        <div class="flex items-center space-x-2 p-1">
+                            <label class="text-sm" for="highlightColor">Highlight:</label>
+                            <input class="color-input" id="highlightColor" type="color" value="#2563EB"
+                                title="Choose the color for highlighting selected elements.">
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button class="toolbar-btn" id="undoBtn" disabled
+                            title="Undo the last action (Ctrl+Z).">Undo</button>
+                        <button class="toolbar-btn" id="redoBtn" disabled
+                            title="Redo the last undone action (Ctrl+Y).">Redo</button>
+                        <button class="toolbar-btn" id="scaleAllBtn"
+                            title="Scale all elements in the current UI by a percentage.">Scale All</button>
+                        <button class="toolbar-btn" id="resetZoomBtn"
+                            title="Reset the canvas zoom to 100%.">Reset</button>
+                        <label class="text-sm text-gray-300 ml-4" for="zoomSlider">Zoom:</label>
+                        <input class="w-24" id="zoomSlider" type="range" value="100" max="400" min="10"
+                            title="Zoom in or out of the canvas.">
+                        <input class="prop-editor-input text-center w-20" id="zoomInput" type="number" value="100">
+                        <span class="text-sm text-gray-300 -ml-2">%</span>
+                    </div>
+                </div>
+                <div class="flex flex-col flex-grow min-h-0 relative">
+                    <div class="flex flex-shrink-0 border-b border-gray-700" id="canvas-tabs">
+                        <button class="tab-btn active" id="ui-viewer-tab">UI Viewer</button>
+                        <button class="hidden tab-btn" id="texture-viewer-tab">Texture Viewer</button>
+                        <button class="hidden tab-btn" id="xml-editor-tab">XML Editor</button>
+                        <button class="hidden tab-btn" id="font-editor-tab">Font Editor</button>
+                    </div>
+                    <div class="relative overflow-auto bg-gray-900 flex-grow rounded-b-lg" id="canvas-content">
+                        <div class="w-full h-full" id="ui-viewer-panel">
+                            <div class="w-full h-full overflow-auto p-2 relative" id="inspector">
+                                <canvas id="ruler-canvas"></canvas>
+                                <div id="viewerCanvas"></div>
+                            </div>
+                        </div>
+                        <div class="hidden h-full w-full" id="texture-viewer-panel">
+                            <div class="w-full h-full overflow-auto p-2 relative" id="texture-inspector">
+                                <canvas id="texture-ruler-canvas"></canvas>
+                                <canvas id="texture-editor-canvas" class="bg-gray-700"></canvas>
+                            </div>
+                        </div>
+                        <div class="hidden h-full w-full" id="xml-editor-panel">
+                            <textarea id="xml-editor-textarea"
+                                class="w-full h-full bg-gray-800 text-white font-mono p-2 border-0 resize-none outline-none"
+                                spellcheck="false"></textarea>
+                        </div>
+                        <div class="hidden h-full w-full flex flex-col" id="font-editor-panel">
+                            <div class="flex-shrink-0 p-4 border-b border-gray-700">
+                                <h2 class="text-xl font-semibold text-gray-200">Global Font Editor</h2>
+                                <p class="text-sm text-gray-400 mt-1">Quickly edit all font sizes in the current file.
+                                </p>
+                            </div>
+                            <div class="overflow-y-auto flex-grow p-4" id="font-editor-list">
+                                <!-- Font items will be dynamically inserted here -->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="rounded-lg absolute bg-gray-800 border-2 border-gray-600 bottom-4 h-36 hidden overflow-hidden right-4 w-48"
+                        id="minimap" title="A mini-map of the entire canvas. The red box shows your current view.">
+                        <canvas id="minimap-canvas" class="w-full h-full"></canvas>
+                        <div class="absolute border-2 border-red-500" id="minimap-viewport"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="resizer-x" id="resizer-right"></div>
+            <div class="flex flex-col flex-shrink-0 gap-4" id="right-column" style="flex-basis:350px">
+                <div class="flex items-center justify-between gap-2">
+                    <button class="toolbar-btn" id="previewModeBtn"
+                        title="View the UI in a clean, fullscreen preview without editor controls.">Preview
+                        Mode</button>
+                    <button
+                        class="rounded-lg font-semibold px-4 py-2 w-auto bg-green-600 disabled:bg-gray-600 disabled:cursor-not-allowed hover:bg-green-700"
+                        id="saveChangesBtn" disabled
+                        title="Saves all changes back to the original XML file and creates a versioned backup.">Save
+                        Changes</button>
+                    <button class="toolbar-btn" id="themeToggleBtn">Light Mode</button>
+                    <button class="toolbar-btn" id="guideBtn" style="background-color: red; color: black">Guide</button>
+                </div>
+                <div class="flex flex-col p-4 rounded-lg bg-gray-900 min-h-0 flex-grow" id="inspector-panel">
+                    <h2 class="flex-shrink-0 font-semibold mb-3 text-gray-200 text-xl">Hierarchy Inspector</h2>
+                    <div class="flex-shrink-0 mb-2 gap-2 grid grid-cols-2">
+                        <input class="rounded bg-gray-700 border-gray-600 border p-1 text-xs col-span-2" id="filterId"
+                            placeholder="Filter ID (e.g. 1,2)..."
+                            title="Filter elements by their ID. You can use commas to separate multiple IDs.">
+                        <input class="rounded bg-gray-700 border-gray-600 border p-1 text-xs w-full" id="filterMinWidth"
+                            type="number" placeholder="Min W" title="Filter elements by minimum width.">
+                        <input class="rounded bg-gray-700 border-gray-600 border p-1 text-xs w-full"
+                            id="filterMinHeight" type="number" placeholder="Min H"
+                            title="Filter elements by minimum height.">
+                    </div>
+                    <div class="overflow-y-auto space-y-1 flex-grow min-h-0" id="hierarchy"
+                        title="Shows the structure of the UI elements. Click to select, Shift-click for multi-select.">
+                    </div>
+                </div>
+                <div class="flex flex-col p-4 rounded-lg bg-gray-900 flex-shrink-0 hidden" id="property-editor">
+                    <h2 class="text-gray-200 font-semibold mb-3 text-lg truncate" id="prop-editor-title">Property Editor
+                    </h2>
+                    <div class="space-y-4">
+                        <div>
+                            <div class="grid gap-2 grid-cols-3">
+                                <div><label class="input-label" for="prop-x">Position X</label> <input
+                                        class="text-sm prop-editor-input" id="prop-x" type="number"
+                                        title="Element's horizontal position (X-coordinate)."></div>
+                                <div><label class="input-label" for="prop-y">Position Y</label> <input
+                                        class="text-sm prop-editor-input" id="prop-y" type="number"
+                                        title="Element's vertical position (Y-coordinate)."></div>
+                                <div><label class="input-label" for="prop-scale-value">Scale %</label> <input
+                                        class="text-sm prop-editor-input" id="prop-scale-value" type="number"
+                                        value="100" title="Scale the element's size. 100% is original size."></div>
+                            </div>
+                        </div>
+                        <div class="hidden space-y-2" id="font-section">
+                            <h3 class="text-gray-300 font-semibold text-sm border-t border-gray-700 pt-2">Font</h3>
+                            <div class="grid gap-2 grid-cols-2">
+                                <div><label class="input-label" for="prop-font-size">Font Size</label> <input
+                                        class="text-sm prop-editor-input" id="prop-font-size" type="number"
+                                        placeholder="Font Size" title="The font index/size of the element."></div>
+                            </div>
+                        </div>
+                        <div class="hidden space-y-2" id="texture-section">
+                            <h3 class="text-gray-300 font-semibold text-sm border-t border-gray-700 pt-2">Texture</h3>
+                            <div class="grid gap-2 grid-cols-2">
+                                <div><label class="input-label" for="prop-uv-x">UV Left (X)</label> <input
+                                        class="text-sm prop-editor-input" id="prop-uv-x" type="number"
+                                        placeholder="UV X" title="The X coordinate of the texture mapping (UV)."></div>
+                                <div><label class="input-label" for="prop-uv-y">UV Top (Y)</label> <input
+                                        class="text-sm prop-editor-input" id="prop-uv-y" type="number"
+                                        placeholder="UV Y" title="The Y coordinate of the texture mapping (UV)."></div>
+                                <div><label class="input-label" for="prop-uv-w">UV Width</label> <input
+                                        class="text-sm prop-editor-input" id="prop-uv-w" type="number"
+                                        placeholder="UV W" title="The width of the texture area to use."></div>
+                                <div><label class="input-label" for="prop-uv-h">UV Height</label> <input
+                                        class="text-sm prop-editor-input" id="prop-uv-h" type="number"
+                                        placeholder="UV H" title="The height of the texture area to use."></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    <div class="hidden modal-overlay" id="guideModal">
+        <div class="guide-content">
+            <h2>Welcome to the UI Editor!</h2>
+            <p>Support: <a style="color:#2563EB" href="https://github.com/AhmetAkyuez/GrandFantasia-UI-Editor">https://github.com/AhmetAkyuez/GrandFantasia-UI-Editor</a></p>
+            <p>This tool is designed to help you visualize and edit the user interface (UI) files for the game
+                <strong>Grand Fantasia</strong>. You can inspect element properties, modify their positions and sizes,
+                and see the changes in real-time.
+            </p>
+
+            <h3>Getting Started</h3>
+            <ol class="list-decimal pl-5 mb-4">
+                <li class="mb-2"><strong>Choose an XML File:</strong> Once the folder is selected, the list on the left
+                    will populate with all the UI <code>.xml</code> files. You can use the search bar or the grouping
+                    toggle to find a specific file. Click on a file to load it into the viewer.</li>
+                <li class="mb-2"><strong>Explore and Edit:</strong> The UI will be rendered in the central canvas. You
+                    can now select elements either by clicking on them in the canvas or in the "Hierarchy Inspector" on
+                    the right.</li>
+            </ol>
+
+            <h3>Core Features</h3>
+            <ul>
+                <li><strong>Visualizer:</strong> The central canvas displays a live preview of the selected UI file. You
+                    can pan by middle-mouse-clicking and dragging, and zoom with the scroll wheel or the zoom slider.
+                </li>
+                <li><strong>Hierarchy Inspector:</strong> This panel on the right shows you the tree structure of all
+                    elements in the UI. It's great for understanding how different components are nested. You can
+                    select, multi-select (with Ctrl/Shift), and right-click for more options like isolating or hiding
+                    elements.</li>
+                <li><strong>Property Editor:</strong> When you select a single element, this panel appears below the
+                    hierarchy. Here you can directly edit its position (X, Y), scale, and texture coordinates (UVs).
+                </li>
+                <li><strong>XML Editor:</strong> A new tab that allows you to directly view and edit the raw XML source
+                    code of the file. Changes made here can be saved directly or previewed by switching back to the UI
+                    Viewer tab.</li>
+                <li><strong>Font Editor:</strong> A dedicated tab to view and edit the font sizes for all applicable
+                    elements in one convenient list.</li>
+                <li><strong>Texture Inspector:</strong> The panel on the left lists all the textures (<code>.dds</code>
+                    files) used in the current UI. Clicking on a texture will open a detailed view, showing all the
+                    elements that use it.</li>
+                <li><strong>Saving Changes:</strong> After making edits, the "Save Changes" button will become active.
+                    Clicking it will overwrite the original <code>.xml</code> file and also create a timestamped backup
+                    in a <code>UI-Editor/versions</code> folder, so you can always revert if needed.</li>
+                <li><strong>Version Control:</strong> When you select a file, a list of its available backups will
+                    appear underneath it. Click the "Restore" button on any version to overwrite the active file with
+                    the backup's content.</li>
+            </ul>
+
+            <h3>Tips & Tricks</h3>
+            <ul>
+                <li>Use the <strong>filter inputs</strong> in the Hierarchy Inspector to quickly find elements by ID or
+                    size.</li>
+                <li>The <strong>'Swap W/H'</strong> toggle can fix issues where elements appear rotated incorrectly.
+                </li>
+                <li>Right-click on an element in the hierarchy for a context menu with powerful options to
+                    <strong>isolate, hide, or expand/collapse</strong> element trees.
+                </li>
+                <li>Use the <strong>'Preview Mode'</strong> for a clean, fullscreen look at your UI without any editor
+                    controls.</li>
+            </ul>
+
+            <button class="rounded-lg font-semibold mt-4 px-4 py-2 w-full bg-blue-600 hover:bg-blue-700"
+                id="closeGuideBtn">Close Guide</button>
+        </div>
+    </div>
+    <div class="hidden modal-overlay" id="textureModal">
+        <div class="flex flex-col p-4 rounded-lg bg-gray-800 max-h-[90vh] max-w-[90vw] shadow-2xl w-auto">
+            <h3 class="flex-shrink-0 mb-2 font-bold text-lg" id="textureModalTitle">Texture Viewer</h3>
+            <div class="flex flex-grow min-h-0 flex-row gap-4">
+                <div class="rounded bg-gray-900 p-2 overflow-auto relative">
+                    <canvas id="textureModalCanvas" class="absolute left-0 top-0"></canvas>
+                    <canvas id="textureModalHighlightCanvas" class="absolute left-0 top-0"></canvas>
+                </div>
+                <div class="flex-shrink-0 bg-gray-900 p-2 overflow-y-auto rounded w-64" id="textureModalUserList"></div>
+            </div>
+            <button class="flex-shrink-0 font-bold bg-blue-600 hover:bg-blue-700 mt-4 px-4 py-2 rounded text-white"
+                id="closeTextureModal">Close</button>
+        </div>
+    </div>
+    <div class="hidden modal-overlay" id="scaleAllModal">
+        <div class="rounded-lg w-full bg-gray-800 shadow-2xl max-w-sm p-6">
+            <h3 class="font-bold mb-4 text-lg">Scale All Elements</h3>
+            <p class="text-sm text-gray-400 mb-4">Enter a percentage to scale all element positions and dimensions. 100
+                means no change.
+            <div>
+                <label class="text-sm text-gray-300 font-medium" for="globalScaleInput">Scale (%)</label> <input
+                    class="prop-editor-input mt-1" id="globalScaleInput" type="number" value="100">
+            </div>
+            <div class="flex gap-3 justify-end mt-6">
+                <button class="rounded-lg font-semibold px-4 py-2 bg-gray-600 hover:bg-gray-500"
+                    id="cancelScaleAllBtn">Cancel</button> <button
+                    class="rounded-lg font-semibold px-4 py-2 bg-blue-600 hover:bg-blue-700"
+                    id="applyScaleAllBtn">Apply</button>
+            </div>
+        </div>
+    </div>
+    <div class="hidden modal-overlay" id="fullscreenPreviewModal">
+        <div class="relative" id="fullscreenPreviewContent"></div>
+    </div>
+    <div class="hidden" id="context-menu"></div>
+    <div class="hidden tooltip" id="coords-tooltip"></div>
+    <div class="hidden tooltip" id="element-tooltip"></div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const guideModal = document.getElementById('guideModal');
+            const guideBtn = document.getElementById('guideBtn');
+            const closeGuideBtn = document.getElementById('closeGuideBtn');
+
+            if (guideBtn) {
+                guideBtn.addEventListener('click', () => {
+                    guideModal.classList.remove('hidden');
+                });
+            }
+
+            if (closeGuideBtn) {
+                closeGuideBtn.addEventListener('click', () => {
+                    guideModal.classList.add('hidden');
+                });
+            }
+
+            // Close modal if clicking outside the content
+            guideModal.addEventListener('click', (event) => {
+                if (event.target === guideModal) {
+                    guideModal.classList.add('hidden');
+                }
+            });
+        });
+    </script>
+    <script>
+        const DDSParser = (() => { function l(l) { let e = new DataView(l); if (542327876 !== e.getUint32(0, !0)) throw Error("Invalid DDS file magic number"); let m = e.getInt32(12, !0), t = e.getInt32(16, !0), x = e.getUint32(80, !0), n = e.getUint32(84, !0), o = e.getUint32(88, !0), a = e.getUint32(92, !0), i; if (4 & x) { if (827611204 === n) i = "dxt1"; else if (861165636 === n) i = "dxt3"; else if (894720068 === n) i = "dxt5"; else throw Error(`Unsupported FourCC: 0x${n.toString(16)}`) } else if (64 & x) { if (32 === o) { if (255 === a) i = "rgba"; else if (16711680 === a) i = "bgra"; else throw Error(`Unsupported 32-bit RGBA mask: R=0x${a.toString(16)}`) } else throw Error(`Unsupported uncompressed RGB. BitCount: ${o}`) } else throw Error("Unknown or unsupported DDS pixel format."); return { width: t, height: m, format: i, buffer: l } } function e(l) { let { width: e, height: x, format: i, buffer: r } = l, s = new Uint8Array(r, 128), d = new Uint8ClampedArray(e * x * 4); switch (i) { case "dxt1": t(d, s, e, x, 8, n); break; case "dxt3": t(d, s, e, x, 16, o); break; case "dxt5": t(d, s, e, x, 16, a); break; case "rgba": d.set(s); break; case "bgra": m(d, s); break; default: throw Error(`Cannot decode format ${i}`) }return { data: d, width: e, height: x } } function m(l, e) { for (let m = 0; m < e.length; m += 4)l[m] = e[m + 2], l[m + 1] = e[m + 1], l[m + 2] = e[m], l[m + 3] = e[m + 3] } function t(l, e, m, t, x, n) { for (let o = 0; o < t; o += 4)for (let a = 0; a < m; a += 4) { let i = (o / 4 * (m / 4) + a / 4) * x, r = e.slice(i, i + x), s = n(r); for (let d = 0; d < 4; d++)for (let f = 0; f < 4; f++) { let c = 4 * d + f, u = a + f, p = o + d; if (u < m && p < t) { let g = (p * m + u) * 4; l.set(s.slice(4 * c, 4 * c + 4), g) } } } } function x(l) { let e = l >> 11 & 31, m = l >> 5 & 63, t = 31 & l; return [e << 3 | e >> 2, m << 2 | m >> 4, t << 3 | t >> 2] } function n(l) { let e = l[0] | l[1] << 8, m = l[2] | l[3] << 8, [t, n, o] = x(e), [a, i, r] = x(m), s = [[t, n, o, 255], [a, i, r, 255]]; e > m ? (s.push([(2 * t + a) / 3, (2 * n + i) / 3, (2 * o + r) / 3, 255]), s.push([(t + 2 * a) / 3, (n + 2 * i) / 3, (o + 2 * r) / 3, 255])) : (s.push([(t + a) / 2, (n + i) / 2, (o + r) / 2, 255]), s.push([0, 0, 0, 0])); let d = new Uint32Array(l.buffer, l.byteOffset + 4, 1)[0], f = new Uint8ClampedArray(64); for (let c = 0; c < 16; c++)f.set(s[d >> 2 * c & 3], 4 * c); return f } function o(l) { let e = l.slice(0, 8), m = n(l.slice(8)); for (let t = 0; t < 16; t++) { let x = Math.floor(t / 2), o = t % 2 == 0 ? 15 & e[x] : e[x] >> 4; m[4 * t + 3] = o / 15 * 255 } return m } function a(l) { let e = l[0], m = l[1], t = BigInt(l[7]) << 40n | BigInt(l[6]) << 32n | BigInt(l[5]) << 24n | BigInt(l[4]) << 16n | BigInt(l[3]) << 8n | BigInt(l[2]), x = [e, m]; if (e > m) for (let o = 2; o < 8; o++)x.push(((8 - o) * e + (o - 1) * m) / 7); else { for (let a = 2; a < 6; a++)x.push(((6 - a) * e + (a - 1) * m) / 5); x.push(0), x.push(255) } let i = n(l.slice(8)); for (let r = 0; r < 16; r++) { let s = Number(t >> 3n * BigInt(r) & 7n); i[4 * r + 3] = x[s] } return i } return { parse: l, decode: e } })(), grandFantasiaUiClusters = { "System & Core UI": { "Login & Character Selection": ["LoginWnd.xml", "ServerListWnd.xml", "CreateCharacterWnd.xml", "SelectCharacterWnd.xml", "SelectCharacterWnd_bac.xml", "CharPassword.xml"], "Game Options & Settings": ["Option.xml", "Option_audio.xml", "Option_case.xml", "Option_ui.xml", "Option_video.xml", "CustomKey.xml", "UISetup.xml"], "General Interface & HUD": ["CastingBar.xml", "HIDUI.xml", "Menu.xml", "Radar.xml", "ShortcutBar.xml", "Target.xml", "TargetTarget.xml", "TinyClock.xml", "TinyClockSetting.xml"], "System Messages & Pop-ups": ["CommonDlgA.xml", "CommonDlgB.xml", "CommonDlgC.xml", "CommonDlgD.xml", "CommonDlgE.xml", "CommonDlgF.xml", "CommonDlgG.xml", "CommonDlgH.xml", "CommonDlgI.xml", "CommonDlgJ.xml", "CommonDlgK.xml", "CommonInvite.xml", "ConstantMessageWnd.xml", "ExtendableMessageBoard.xml", "GameTimer.xml", "Indulge.xml", "IndulgeNotify.xml", "LogoutCount.xml", "Notify.xml", "Progress.xml", "Revive.xml", "ScreenMessage.xml", "SystemWnd.xml", "SystemWnd_org.xml"], "System Components & Unclear": ["ComboBox.xml", "Fonts.xml", "pln.xml", "pln_1.xml", "pln_10.xml", "pln_11.xml", "pln_12.xml", "pln_13.xml", "pln_2.xml", "pln_3.xml", "pln_4.xml", "pln_5.xml", "pln_6.xml", "pln_7.xml", "pln_8.xml", "pln_9.xml", "pln_W.xml", "Vkeyboard.xml", "Vkeyboard_1.xml", "WebBrowser.xml"] }, "Character & Player Progression": { "Character Information": ["BasicChar.xml", "DetailAttr.xml", "Equipment.xml", "Inventory.xml", "Storage.xml", "Bank.xml", "RentStorageBag.xml"], "Skills & Abilities (Spells)": ["SpellList.xml", "SpellAA.xml", "SpellCard.xml", "SpellOverview.xml", "SpellST.xml", "SpellStorage.xml", "SpellView.xml", "Upanishad.xml"], "Cosmetics & Customization": ["DressRoom.xml", "DressRoomFull.xml", "FaceChange.xml"], "Item & Equipment Enhancement": ["Combine.xml", "CrystalCombo.xml", "EquipTrain.xml", "FullEnchantList.xml", "QuickEnchantList.xml", "RemoveRune.xml", "RemoveRune - Copie.xml", "RideCombine.xml", "RideTrain.xml", "RuneReCombo.xml", "Strengthen.xml", "StrengthenEx.xml"] }, "Elf System": { "Core Elf Management": ["ElfUI.xml", "ElfUIGame.xml", "ElfUI_bac.xml", "ElfEquip.xml", "ElfInventory.xml", "ElfSkill.xml", "ElfSkillModify.xml", "Elftablet.xml"], "Elf Activities & Minigames": ["ElfBet.xml", "ElfBoxing.xml", "ElfBoxingSchedule.xml", "ElfDuel.xml", "ElfGladiatorWnd.xml", "ElfRacing.xml", "ElfRacingBuyCoin.xml", "ElfRacingReward.xml", "ElfTeamFight.xml", "ElfTeamFightPlus.xml"], "Elf Progression & Tasks": ["AutoElfLotteryGOSetting.xml", "AutoElfLotteryLog.xml", "AutoElfLotterySetting.xml", "ElfCollect.xml", "ElfDecompose.xml", "ElfPickSetting.xml", "ElfSchoolWnd.xml", "ElfSchoolResultWnd.xml", "ElfTrain.xml", "ElfTrainSend.xml", "ElfWork.xml"], "Elf Social & Interaction": ["ElfFaceChange.xml", "ElfReturn.xml", "ElfReturn_New.xml", "ElfSearch.xml", "ElfSend.xml"] }, "Social & Community": { "Fellowship & Friends": ["AddressBook.xml", "Fellowship_friends.xml", "Fellowship_Mentorship.xml", "Mentorship_LVUP_Reward.xml", "Lover.xml", "LoverMessage.xml"], "Family (Guild System)": ["FamilyAchievement.xml", "FamilyBank.xml", "FamilyBattleResult.xml", "FamilyBattleSchedule.xml", "FamilyBulletin.xml", "FamilyComment.xml", "FamilyCrop.xml", "Family_Farm.xml", "FamilyEditScheduleMsgInfo.xml", "FamilyElfAlter.xml", "FamilyFlag.xml", "FamilyRecruit.xml", "FamilySetCadre.xml", "FamilySetPrivilege.xml", "FamilyTreeWnd.xml", "FamilyTreeItemViewWnd.xml", "FamilyWishingWell.xml", "Fellowship_family.xml", "Fellowship_FamilyAffairs.xml"], "Team & Party": ["Team.xml", "Team.bckp.xml", "LootRule.xml", "LootRulePlus.xml", "RecruitPlayer.xml", "Fellowship_SearchTeam.xml"], "Mail & Messaging": ["MailList.xml", "MailRead.xml", "MailSend.xml", "MessageBoard.xml", "MessageRead.xml", "MessageWrite.xml", "Megaphone.xml", "PostCard.xml"] }, "PvP & Competitions": { Arena: ["ArenaReward.xml", "ArenaScore.xml", "ArenaScore2.xml"], Battlefield: ["Battlefield.xml", "Battlefield_Info.xml", "New_Battlefield_Info.xml", "Special_Battlefield_Info.xml", "BattlefieldLobby.xml", "Battlefield_Result.xml", "Battlefield_Reward.xml", "Special_Battlefield_Setting.xml"], "Other PvP/Ranked Content": ["Duel.xml", "FightKingWnd.xml", "PKOpponentListWnd.xml", "PKPalace.xml", "PKPalaceRankWnd.xml", "Territory.xml"], "Racing & Leaderboards": ["Race_Comment.xml", "Race_Filter.xml", "Race_Rank.xml", "Race_Record.xml", "Race_Result.xml", "Race_Timer.xml", "RankInfo.xml", "RankPrizeWnd.xml"] }, "Quests, Achievements & Story": { Core: ["Diary_Achievement.xml", "Diary_AutoAcceptMission.xml", "Diary_Prestige.xml", "Diary_QuestLog.xml", "MissionBook.xml", "NPCTalk.xml", "NPCTalk - Copie.xml", "Quest.xml", "QuestAutoNotify.xml", "QuestTraceWnd.xml", "PrestigeExchangeWnd.xml", "AchievementMonsterInfo.xml"] }, "Commerce & Economy": { "Player-to-Player Commerce": ["AuctionBuy.xml", "AuctionSell.xml", "Shop.xml", "Shop2.xml", "TradeUI.xml"], "Item Mall (Cash Shop)": ["ItemMall.xml", "ItemMallHot.xml", "ItemMallNew.xml", "ItemMallNewDetail.xml", "ItemMallSend.xml"], "NPC & System Shops": ["BuyBackList.xml", "ItemExchange.xml"] }, "Professions & Crafting": { Professions: ["AlchemyCombo.xml", "CarvingWnd.xml", "CarvingComboWnd.xml", "CarvingStyleWnd.xml", "Cook.xml", "Fishing.xml", "FishControl.xml", "FishContro01.xml", "KusoCombine.xml"] }, "World, Navigation & Dungeons": { Maps: ["WorldMap1.xml", "WorldMap2.xml", "WorldMap3.xml", "WorldMap4.xml", "ZoneMap.xml", "ZoneMap-2.xml", "ZoneMapFrame.xml", "ZoneMapOption.xml"], "Instanced Content": ["BeastsTowerInfo.xml", "BeastsTowerRegister.xml", "FB_Deepfathom.xml", "InsideM_1.xml", "InsideM_2.xml", "InsideM_3.xml", "InsideM_4.xml", "InsideM_5.xml", "Isle.xml", "IsleAltar.xml", "IsleElfView.xml", "IsleElfWork.xml", "IsleInfo.xml", "IsleRecord.xml", "IsleStatue.xml", "IsleStorage.xml", "IsleSummon.xml", "Raid.xml", "TempleChallengeWnd.xml"] }, "Miscellaneous Features & Events": { "Features & Events": ["Awake.xml", "AutoAwake.xml", "Collection.xml", "CollectionPointAbilityWnd.xml", "DailyAwards.xml", "GameHelp.xml", "Tutorial.xml", "GameItemWiki.xml", "LotteryGO.xml", "LotteryGoSpecial.xml", "LuckyBar.xml", "LuckyBarElf.xml", "LuckyBarElfNew.xml", "LuckyStar.xml", "NewStarCombo.xml", "StarAvenue.xml", "StarCombo.xml", "StarRewardList.xml", "StarShop.xml", "OptionalLuckyBag.xml", "OptionalLuckyBagConfirm.xml", "RainbowRoadGameWnd.xml", "RainbowRoadTypeWnd.xml", "RainbowTeamUI.xml", "RecommendedEventsNEW.xml", "RecommendedEventsUI.xml", "OptimizeRecommendedEvents.xml"] }, Other: { Files: ["AutoAltarWnd.xml", "CandidatWindow.xml", "Captcha.xml", "ChairCombine.xml", "Channel.xml", "ChannelGroup.xml", "ContractWnd.xml", "KickCoRide.xml", "ListWnd.xml", "Log_Dlg.xml", "MonsterInfo.xml", "NodeLimitWnd.xml", "PartBreakingDrop.xml", "ReportDetail.xml", "ReportWnd.xml", "Roll.xml", "SceneEventState.xml", "SoulLantern.xml", "testList.xml", "testXY.xml", "ToolTips_Detail.xml", "ToolTips_Mini.xml", "Transport.xml", "TreasureInfo.xml", "Untitled.xml"] } };        
+    </script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            // --- DOM Element Cache ---
+            let t = e => document.getElementById(e),
+                i = {
+                    startupScreen: t("startup-screen"),
+                    selectFolderBtn: t("startupSelectFolderBtn"),
+                    changeFolderBtn: t("changeFolderBtn"),
+                    folderInfoContainer: t("folder-info-container"),
+                    mainGrid: t("main-grid"),
+                    xmlList: t("xmlList"),
+                    xmlSearch: t("xmlSearch"),
+                    inspector: t("inspector"),
+                    viewerCanvas: t("viewerCanvas"),
+                    inspectorPanel: t("inspector-panel"),
+                    hierarchy: t("hierarchy"),
+                    zoomSlider: t("zoomSlider"),
+                    folderPathEl: t("folderPath"),
+                    textureModal: t("textureModal"),
+                    textureModalTitle: t("textureModalTitle"),
+                    textureModalCanvas: t("textureModalCanvas"),
+                    textureModalHighlightCanvas: t("textureModalHighlightCanvas"),
+                    textureModalUserList: t("textureModalUserList"),
+                    closeTextureModal: t("closeTextureModal"),
+                    textureList: t("textureList"),
+                    filterId: t("filterId"),
+                    filterMinWidth: t("filterMinWidth"),
+                    filterMinHeight: t("filterMinHeight"),
+                    swapWH: t("swapWH"),
+                    contextMenu: t("context-menu"),
+                    rulerTool: t("rulerTool"),
+                    rulerCanvas: t("ruler-canvas"),
+                    coordsTooltip: t("coords-tooltip"),
+                    textureInspectorCard: t("texture-inspector-card"),
+                    canvasWidthInput: t("canvasWidth"),
+                    canvasHeightInput: t("canvasHeight"),
+                    borderToggle: t("borderToggle"),
+                    highlightColor: t("highlightColor"),
+                    elementTooltip: t("element-tooltip"),
+                    propertyEditor: t("property-editor"),
+                    propEditorTitle: t("prop-editor-title"),
+                    propX: t("prop-x"),
+                    propY: t("prop-y"),
+                    propScaleValue: t("prop-scale-value"),
+                    saveChangesBtn: t("saveChangesBtn"),
+                    undoBtn: t("undoBtn"),
+                    redoBtn: t("redoBtn"),
+                    scaleAllBtn: t("scaleAllBtn"),
+                    scaleAllModal: t("scaleAllModal"),
+                    globalScaleInput: t("globalScaleInput"),
+                    cancelScaleAllBtn: t("cancelScaleAllBtn"),
+                    applyScaleAllBtn: t("applyScaleAllBtn"),
+                    textureSection: t("texture-section"),
+                    propUvX: t("prop-uv-x"),
+                    propUvY: t("prop-uv-y"),
+                    propUvW: t("prop-uv-w"),
+                    propUvH: t("prop-uv-h"),
+                    leftColumn: t("left-column"),
+                    rightColumn: t("right-column"),
+                    resizerLeft: t("resizer-left"),
+                    resizerRight: t("resizer-right"),
+                    resizerVertical: t("resizer-vertical"),
+                    uiViewerTab: t("ui-viewer-tab"),
+                    textureViewerTab: t("texture-viewer-tab"),
+                    uiViewerPanel: t("ui-viewer-panel"),
+                    textureViewerPanel: t("texture-viewer-panel"),
+                    textureEditorCanvas: t("texture-editor-canvas"),
+                    textureRulerCanvas: t("texture-ruler-canvas"),
+                    textureInspector: t("texture-inspector"),
+                    animatedBorders: t("animatedBorders"),
+                    stretchUV: t("stretchUV"),
+                    resetZoomBtn: t("resetZoomBtn"),
+                    minimap: t("minimap"),
+                    minimapCanvas: t("minimap-canvas"),
+                    minimapViewport: t("minimap-viewport"),
+                    previewModeBtn: t("previewModeBtn"),
+                    themeToggleBtn: t("themeToggleBtn"),
+                    zoomInput: t("zoomInput"),
+                    groupToggle: t("groupToggle"),
+                    fullscreenPreviewModal: t("fullscreenPreviewModal"),
+                    fullscreenPreviewContent: t("fullscreenPreviewContent"),
+                    xmlEditorTab: t("xml-editor-tab"),
+                    xmlEditorPanel: t("xml-editor-panel"),
+                    xmlEditorTextarea: t("xml-editor-textarea"),
+                    fontSection: t("font-section"),
+                    propFontSize: t("prop-font-size"),
+                    // New elements for v2.18
+                    fontEditorTab: t("font-editor-tab"),
+                    fontEditorPanel: t("font-editor-panel"),
+                    fontEditorList: t("font-editor-list"),
+                };
+            i.zoomSlider.max = 1500, i.zoomInput.max = 1500, i.textureInspectorCard.classList.add("hidden");
+            let r = null,
+                l = new Map,
+                a = [],
+                o = new Map,
+                n = new Set,
+                d = null,
+                s = null,
+                c = null,
+                h = {
+                    width: 1024,
+                    height: 768
+                },
+                u = "ui",
+                g = [],
+                p = -1,
+                v = !1,
+                m = !1,
+                y = new Set,
+                f = null,
+                x = indexedDB.open("UIEditorDB", 1),
+                w,
+                xmlDirty = !1;
+            async function $(e) {
+                w && w.transaction("handles", "readwrite").objectStore("handles").put({
+                    id: "lastFolder",
+                    handle: e
+                })
+            }
+            async function L() {
+                if (!w) return;
+                let e = w.transaction("handles", "readonly").objectStore("handles").get("lastFolder");
+                e.onsuccess = async e => {
+                    let t = e.target.result;
+                    t && t.handle && await t.handle.queryPermission({
+                        mode: "readwrite"
+                    }) === "granted" ? (r = t.handle, await S()) : (i.startupScreen.classList.remove("hidden"), i.mainGrid.classList.add("hidden"))
+                }
+            }
+
+            function b() {
+                let e = localStorage.getItem("canvasWidth"),
+                    t = localStorage.getItem("canvasHeight"),
+                    r = localStorage.getItem("highlightColor");
+                h.width = e ? parseInt(e, 10) : 1024, h.height = t ? parseInt(t, 10) : 768, i.canvasWidthInput.value = h.width, i.canvasHeightInput.value = h.height, i.highlightColor.value = r || "#2563EB";
+                let l = localStorage.getItem("theme");
+                "light" === l && (document.body.classList.add("light-mode"), i.themeToggleBtn.textContent = "Dark Mode")
+            }
+
+            function E() {
+                h.width = parseInt(i.canvasWidthInput.value, 10) || 1024, h.height = parseInt(i.canvasHeightInput.value, 10) || 768, localStorage.setItem("canvasWidth", h.width), localStorage.setItem("canvasHeight", h.height), s && I(s)
+            }
+
+            function C(e, t, i) {
+                let r = 0,
+                    l = 0,
+                    a = function (i) {
+                        i.preventDefault(), r = i.clientX, l = t.getBoundingClientRect().width, document.addEventListener("mousemove", o), document.addEventListener("mouseup", n), document.body.style.cursor = "col-resize", document.body.style.userSelect = "none", e.classList.add("dragging"), t.style.opacity = "0.8"
+                    },
+                    o = function (e) {
+                        let a = e.clientX - r,
+                            o = "right" === i ? l + a : l - a;
+                        o > 150 && (t.style.flexBasis = o + "px")
+                    },
+                    n = function () {
+                        document.removeEventListener("mousemove", o), document.removeEventListener("mouseup", n), document.body.style.cursor = "default", document.body.style.userSelect = "auto", e.classList.remove("dragging"), t.style.opacity = "1"
+                    };
+                e.addEventListener("mousedown", a)
+            }
+
+            function _(e, t, i) {
+                let r = 0,
+                    l = 0,
+                    a = 0,
+                    o = function (o) {
+                        o.preventDefault(), r = o.clientY, l = t.getBoundingClientRect().height, a = i.getBoundingClientRect().height, document.addEventListener("mousemove", n), document.addEventListener("mouseup", d), document.body.style.cursor = "row-resize", document.body.style.userSelect = "none", e.classList.add("dragging"), t.style.opacity = "0.8", i.style.opacity = "0.8"
+                    },
+                    n = function (e) {
+                        let o = e.clientY - r,
+                            n = l + o,
+                            d = a - o;
+                        n > 100 && d > 100 && (t.style.flex = `1 1 ${n}px`, i.style.flex = `1 1 ${d}px`)
+                    },
+                    d = function () {
+                        document.removeEventListener("mousemove", n), document.removeEventListener("mouseup", d), document.body.style.cursor = "default", document.body.style.userSelect = "auto", e.classList.remove("dragging"), t.style.opacity = "1", i.style.opacity = "1"
+                    };
+                e.addEventListener("mousedown", o)
+            }
+            async function k() {
+                try {
+                    await $(r = await window.showDirectoryPicker({
+                        mode: "readwrite"
+                    })), await S()
+                } catch (e) {
+                    "AbortError" !== e.name && alert(`Error selecting folder: ${e.message}`)
+                }
+            }
+            async function S() {
+                i.startupScreen.classList.add("hidden"), i.mainGrid.classList.remove("hidden"), i.folderInfoContainer.classList.add("folder-selected"), i.folderPathEl.textContent = r.name, i.folderPathEl.title = r.name, a = [], i.groupToggle.checked = !0, await T(), i.rulerTool.dispatchEvent(new Event("change")), i.borderToggle.dispatchEvent(new Event("change")), i.animatedBorders.checked = !0
+            }
+            async function T(e = "") {
+                if (0 === a.length) {
+                    for await (let t of r.values()) "file" === t.kind && t.name.toLowerCase().endsWith(".xml") && a.push(t.name);
+                    a.sort((e, t) => e.localeCompare(t, void 0, {
+                        numeric: !0,
+                        sensitivity: "base"
+                    }))
+                }
+                i.xmlList.innerHTML = "";
+                let l = e.toLowerCase();
+                if (i.groupToggle.checked) {
+                    let o = new Map;
+                    Object.entries(grandFantasiaUiClusters).forEach(([e, t]) => {
+                        Object.entries(t).forEach(([t, i]) => {
+                            i.forEach(i => o.set(i, {
+                                cluster: e,
+                                subCluster: t
+                            }))
+                        })
+                    });
+                    let n = (e, t, i) => {
+                        let r = document.createElement("div");
+                        r.className = "cluster" === t ? "xml-cluster-header" : "xml-subcluster-header";
+                        let l = document.createElement("span");
+                        l.textContent = "[-] ", r.appendChild(l);
+                        let a = document.createElement("span");
+                        return a.textContent = e, r.appendChild(a), r.onclick = e => {
+                            e.stopPropagation(), i.classList.toggle("hidden"), l.textContent = i.classList.contains("hidden") ? "[+] " : "[-] "
+                        }, r
+                    };
+                    Object.entries(grandFantasiaUiClusters).forEach(([e, t]) => {
+                        let r = document.createDocumentFragment(),
+                            a = !1;
+                        if (Object.entries(t).forEach(([e, t]) => {
+                            let i = t.filter(e => e.toLowerCase().includes(l));
+                            if (i.length > 0) {
+                                a = !0;
+                                let o = document.createElement("div"),
+                                    d = n(`${e} (${i.length})`, "subcluster", o);
+                                i.forEach(e => {
+                                    let t = document.createElement("div");
+                                    t.className = "list-item xml-file-item grouped", t.textContent = e, t.onclick = () => I(e);
+                                    t.dataset.filename = e;
+                                    let backupContainer = document.createElement('div');
+                                    backupContainer.className = 'backup-list hidden';
+                                    t.appendChild(backupContainer);
+                                    o.appendChild(t)
+                                }), r.appendChild(d), r.appendChild(o)
+                            }
+                        }), a) {
+                            let o = document.createElement("div");
+                            o.appendChild(r);
+                            let d = n(e, "cluster", o);
+                            i.xmlList.appendChild(d), i.xmlList.appendChild(o)
+                        }
+                    });
+                    let d = a.filter(e => !o.has(e) && e.toLowerCase().includes(l));
+                    if (d.length > 0) {
+                        let s = document.createElement("div"),
+                            c = n(`Uncategorized (${d.length})`, "cluster", s);
+                        d.forEach(e => {
+                            let t = document.createElement("div");
+                            t.className = "list-item xml-file-item grouped", t.textContent = e, t.onclick = () => I(e);
+                            t.dataset.filename = e;
+                            let backupContainer = document.createElement('div');
+                            backupContainer.className = 'backup-list hidden';
+                            t.appendChild(backupContainer);
+                            s.appendChild(t)
+                        }), i.xmlList.appendChild(c), i.xmlList.appendChild(s)
+                    }
+                } else {
+                    let h = a.filter(e => e.toLowerCase().includes(l));
+                    h.forEach(e => {
+                        let t = document.createElement("div");
+                        t.className = "list-item xml-file-item", t.onclick = () => I(e), t.textContent = e;
+                        t.dataset.filename = e;
+                        let backupContainer = document.createElement('div');
+                        backupContainer.className = 'backup-list hidden';
+                        t.appendChild(backupContainer);
+                        i.xmlList.appendChild(t)
+                    })
+                }
+            }
+            async function I(e) {
+                document.querySelectorAll('.backup-list').forEach(el => {
+                    el.innerHTML = '';
+                    el.classList.add('hidden');
+                });
+
+                s = e, c = null, q(), ed("ui"), document.querySelectorAll(".xml-file-item.selected").forEach(e => e.classList.remove("selected"));
+                let t = Array.from(i.xmlList.querySelectorAll(".xml-file-item")),
+                    a = t.find(t => t.dataset.filename === e);
+                a && (a.classList.add("selected"), a.scrollIntoView({
+                    block: "nearest"
+                })), i.viewerCanvas.innerHTML = "", i.hierarchy.innerHTML = "", l.clear(), i.inspectorPanel.classList.remove("hidden"), i.textureInspectorCard.classList.remove("hidden"), i.xmlEditorTab.classList.remove("hidden"), i.fontEditorTab.classList.remove("hidden");
+                try {
+                    let o = await r.getFileHandle(e),
+                        n = await o.getFile();
+                    c = await n.text();
+                    i.xmlEditorTextarea.value = c;
+                    xmlDirty = false;
+
+                    if (a) {
+                        await listBackupFiles(a, o);
+                    }
+
+                    let d = new DOMParser,
+                        u = d.parseFromString(c, "application/xml");
+                    if (u.querySelector("parsererror")) throw Error("XML Parsing Error");
+                    i.viewerCanvas.style.width = `${h.width}px`, i.viewerCanvas.style.height = `${h.height}px`, await M(u), eo(), D()
+                } catch (g) {
+                    i.viewerCanvas.innerHTML = `<p class="text-red-400 p-4">Error: ${g.message}</p>`, console.error(g)
+                }
+            }
+            async function M(e) {
+                o.clear(), n.clear(), d = null, W(), A();
+                let t = new Map,
+                    r = e.querySelectorAll("BaseWndProperty");
+                for (let l of r) {
+                    let a = l.getAttribute("WindowID");
+                    if (a) {
+                        let s = document.createElement("div"),
+                            c = document.createElement("div"),
+                            h = await B(l, s, c, t);
+                        o.set(a, {
+                            ...h,
+                            div: s,
+                            hierarchyLi: c
+                        })
+                    }
+                }
+                i.viewerCanvas.innerHTML = "", i.hierarchy.innerHTML = "", o.forEach(e => i.viewerCanvas.appendChild(e.div));
+                let u = new Set,
+                    g = e.querySelector("Container_Node");
+                if (g) {
+                    let p = Array.from(g.querySelectorAll("Style"));
+                    p.forEach(e => {
+                        let t = e.getAttribute("ParentNode"),
+                            i = o.get(t);
+                        if (i) {
+                            let r = i.hierarchyLi.querySelector(".child-container"),
+                                l = e.nextElementSibling;
+                            for (; l && "Style" !== l.tagName;) {
+                                if ("BaseWndProperty" === l.tagName) {
+                                    let a = l.getAttribute("WindowID");
+                                    u.add(a);
+                                    let n = o.get(a);
+                                    n && r && r.appendChild(n.hierarchyLi)
+                                }
+                                l = l.nextElementSibling
+                            }
+                        }
+                    })
+                }
+                let v = [...o.keys()].filter(e => !u.has(e));
+                v.length > 0 ? v.forEach(e => {
+                    let t = o.get(e);
+                    t && t.hierarchyLi && i.hierarchy.appendChild(t.hierarchyLi)
+                }) : o.size > 0 && (i.hierarchy.innerHTML = '<p class="text-yellow-400 p-2 text-xs">Could not determine root nodes. Displaying a flat list.</p>', o.forEach(e => i.hierarchy.appendChild(e.hierarchyLi))), o.forEach(e => {
+                    if (e.hierarchyLi) {
+                        let t = e.hierarchyLi.querySelector(".child-container"),
+                            i = e.hierarchyLi.querySelector(".expand-toggle");
+                        t && i && (i.style.visibility = t.hasChildNodes() ? "visible" : "hidden")
+                    }
+                }), populateFontEditor(), Q(t), i.borderToggle.checked && o.forEach(e => e.div.classList.add("persistent-border")), ei()
+            }
+            async function B(e, t, r, l) {
+                let a = e.getAttribute("WindowID"),
+                    o = parseInt(e.getAttribute("WindowWidth"), 10) || 0,
+                    n = parseInt(e.getAttribute("WindowHeight"), 10) || 0,
+                    d = o,
+                    s = n;
+                i.swapWH.checked && ([o, n] = [n, o]);
+                let c = parseInt(e.getAttribute("WindowLeft"), 10) || 0,
+                    h = parseInt(e.getAttribute("WindowTop"), 10) || 0,
+                    u_fontSize = e.getAttribute("FontIndex");
+
+                t.className = "ui-element", t.style.left = `${c}px`, t.style.top = `${h}px`, t.style.width = `${o}px`, t.style.height = `${n}px`, t.style.zIndex = a, "0" === e.getAttribute("Visible") && (t.style.display = "none");
+                let u = "N/A",
+                    g = null,
+                    p = null,
+                    v = e.querySelector("BackGroundMap");
+                if (v && "N/A" !== (u = v.getAttribute("BGmap") || "N/A")) {
+                    l.has(u) || l.set(u, []);
+                    let m = v.querySelector("NorUV");
+                    if (m) {
+                        let y = {
+                            x: parseInt(m.getAttribute("NorUVLeft"), 10) || 0,
+                            y: parseInt(m.getAttribute("NorUVTop"), 10) || 0,
+                            w: parseInt(m.getAttribute("NorUVWidth"), 10) || 0,
+                            h: parseInt(m.getAttribute("NorUVHeight"), 10) || 0
+                        };
+                        p = {
+                            ...y
+                        };
+                        g = {
+                            ...y
+                        };
+                        l.get(u).push({
+                            id: a,
+                            rect: y
+                        })
+                    }
+                }
+                r.className = "list-item hierarchy-item", r.dataset.id = a;
+                let L = document.createElement("span");
+                L.className = "text-gray-400 text-xl cursor-pointer pr-1 visibility-toggle", L.innerHTML = "👁️", "none" === t.style.display && (L.style.opacity = "0.3"), L.onclick = e => {
+                    e.stopPropagation(), Z([a])
+                };
+                let b = document.createElement("span");
+                b.className = "text-gray-400 cursor-pointer pr-2 expand-toggle", b.innerHTML = "[-]", b.onclick = e => {
+                    e.stopPropagation(), et(r)
+                };
+                let E = document.createElement("div");
+                E.className = "flex-grow truncate info-div", H(E, a, o, n, c, h);
+                let C = document.createElement("div");
+                C.className = "flex items-center justify-between", C.appendChild(b), C.appendChild(E), C.appendChild(L), r.appendChild(C);
+                let _ = document.createElement("div");
+                _.className = "child-container", _.style.paddingLeft = "1rem", r.appendChild(_), r.addEventListener("mouseover", () => {
+                    t.classList.add("highlight"), r.classList.add("highlight")
+                }), r.addEventListener("mouseout", () => {
+                    t.classList.remove("highlight"), r.classList.remove("highlight")
+                }), r.addEventListener("contextmenu", e => el(e, r));
+
+                let elementData = {
+                    windowId: a,
+                    w: o,
+                    h: n,
+                    x: c,
+                    y: h,
+                    originalW: d,
+                    originalH: s,
+                    textureName: u,
+                    uvRect: g,
+                    originalUvRect: p,
+                    div: t,
+                    hierarchyLi: r,
+                    fontSize: u_fontSize !== null ? parseInt(u_fontSize, 10) : undefined,
+                };
+
+                await updateElementBackground(elementData);
+
+                return elementData;
+            }
+
+            function H(e, t, i, r, l, a) {
+                e.innerHTML = `<span class="prop">ID:</span> <span class="val font-bold">${t}</span> <span class="size">(${Math.round(i)}x${Math.round(r)})</span> <span class="coords">@ ${Math.round(l)},${Math.round(a)}</span>`
+            }
+
+            function R(e, t) {
+                let r = Array.from(i.hierarchy.querySelectorAll(".hierarchy-item:not(.filtered)")),
+                    l = t.dataset.id;
+                if (e.shiftKey && d) {
+                    let a = r.findIndex(e => e.dataset.id === d),
+                        o = r.indexOf(t),
+                        s = r.slice(Math.min(a, o), Math.max(a, o) + 1).map(e => e.dataset.id);
+                    e.ctrlKey || e.metaKey || n.clear(), s.forEach(e => n.add(e))
+                } else e.ctrlKey || e.metaKey ? (n.has(l) ? n.delete(l) : n.add(l), d = l) : (n.clear(), n.add(l), d = l);
+                W(), A()
+            }
+
+            function W() {
+                let e = i.highlightColor.value;
+                document.querySelectorAll(".hierarchy-item").forEach(t => {
+                    let i = o.get(t.dataset.id);
+                    n.has(t.dataset.id) ? (t.classList.add("selected"), t.style.backgroundColor = e, i && i.div && (i.div.style.outline = `2px solid ${e}`)) : (t.classList.remove("selected"), t.style.backgroundColor = "", i && i.div && (i.div.style.outline = ""))
+                })
+            }
+
+            function A() {
+                m = !0, f && (cancelAnimationFrame(f), f = null);
+                try {
+                    if (1 === n.size) {
+                        let [e] = n, t = o.get(e);
+                        if (t) {
+                            i.propEditorTitle.textContent = `Editing ID: ${t.windowId}`, i.propEditorTitle.title = `Editing ID: ${t.windowId}`, i.propX.value = Math.round(t.x), i.propY.value = Math.round(t.y);
+                            let r = t.originalW > 0 ? Math.round(t.w / t.originalW * 100) : 100;
+                            i.propScaleValue.value = r;
+
+                            if (t.fontSize !== undefined) {
+                                i.fontSection.classList.remove("hidden");
+                                i.propFontSize.value = t.fontSize;
+                            } else {
+                                i.fontSection.classList.add("hidden");
+                            }
+
+                            i.propertyEditor.classList.remove("hidden"), t.textureName && "N/A" !== t.textureName && t.originalUvRect ? (i.textureSection.classList.remove("hidden"), i.textureViewerTab.classList.remove("hidden"), U(t), "texture" !== u && ed("texture")) : (i.textureSection.classList.add("hidden"), i.textureViewerTab.classList.add("hidden"), "texture" === u && ed("ui"))
+                        } else i.propertyEditor.classList.add("hidden")
+                    } else i.propertyEditor.classList.add("hidden"), "texture" === u && ed("ui"), i.textureViewerTab.classList.add("hidden")
+                } finally {
+                    m = !1
+                }
+            }
+            async function U(e) {
+                let t = e.originalUvRect;
+                i.propUvX.value = t.x, i.propUvY.value = t.y, i.propUvW.value = t.w, i.propUvH.value = t.h;
+                let r = i.textureEditorCanvas,
+                    l = r.getContext("2d");
+                try {
+                    let a = await ec(e.textureName),
+                        o = new Image;
+                    o.onload = () => {
+                        r.style.width = `${o.width}px`, r.style.height = `${o.height}px`, r.width = o.width, r.height = o.height, f && cancelAnimationFrame(f);
+                        let e = () => {
+                            let i = Date.now() / 10 % 360;
+                            l.clearRect(0, 0, r.width, r.height), l.drawImage(o, 0, 0), l.strokeStyle = `hsl(${i}, 100%, 50%)`, l.lineWidth = 2, l.strokeRect(t.x, t.y, t.w, t.h), f = requestAnimationFrame(e)
+                        };
+                        i.animatedBorders.checked ? e() : (l.clearRect(0, 0, r.width, r.height), l.drawImage(o, 0, 0), l.strokeStyle = i.highlightColor.value, l.lineWidth = 2, l.strokeRect(t.x, t.y, t.w, t.h)), eo()
+                    }, o.src = a.url
+                } catch (n) {
+                    console.error(n)
+                }
+            }
+
+            function updateElementPropertiesFromInput() {
+                if (m || v || 1 !== n.size) return;
+                let [e] = n, t = o.get(e);
+                if (!t) return;
+                let r = parseFloat(i.propX.value),
+                    l = parseFloat(i.propY.value),
+                    a = parseFloat(i.propScaleValue.value) / 100;
+                if (!isNaN(r) && !isNaN(l) && !isNaN(a)) {
+                    t.x = r;
+                    t.y = l;
+                    t.w = t.originalW * a;
+                    t.h = t.originalH * a;
+                    G(t);
+                }
+
+                if (t.fontSize !== undefined) {
+                    const newSize = parseInt(i.propFontSize.value, 10);
+                    if (!isNaN(newSize)) {
+                        t.fontSize = newSize;
+                        const globalInput = document.getElementById(`font-input-${t.windowId}`);
+                        if (globalInput) {
+                            globalInput.value = newSize;
+                        }
+                    }
+                }
+
+                if (t.originalUvRect) {
+                    t.originalUvRect.x = parseInt(i.propUvX.value, 10) || 0;
+                    t.originalUvRect.y = parseInt(i.propUvY.value, 10) || 0;
+                    t.originalUvRect.w = parseInt(i.propUvW.value, 10) || 0;
+                    t.originalUvRect.h = parseInt(i.propUvH.value, 10) || 0;
+                    t.uvRect = {
+                        ...t.originalUvRect
+                    };
+                    updateElementBackground(t);
+                    U(t);
+                }
+            }
+
+            x.onupgradeneeded = e => {
+                (w = e.target.result).objectStoreNames.contains("handles") || w.createObjectStore("handles", {
+                    keyPath: "id"
+                })
+            }, x.onsuccess = e => {
+                w = e.target.result, L()
+            }, x.onerror = e => console.error("IndexedDB error:", e.target.errorCode), b(), C(i.resizerLeft, i.leftColumn, "right"), C(i.resizerRight, i.rightColumn, "left"), _(i.resizerVertical, i.xmlList.parentElement, i.textureInspectorCard), i.selectFolderBtn.addEventListener("click", k), i.changeFolderBtn.addEventListener("click", k), i.zoomSlider.addEventListener("input", () => {
+                i.zoomInput.value = i.zoomSlider.value, eo()
+            }), i.zoomInput.addEventListener("input", () => {
+                i.zoomSlider.value = i.zoomInput.value, eo()
+            }), i.resetZoomBtn.addEventListener("click", () => {
+                i.zoomSlider.value = 100, i.zoomInput.value = 100, eo()
+            }), i.swapWH.addEventListener("change", () => {
+                s && I(s)
+            }), i.xmlSearch.addEventListener("input", () => T(i.xmlSearch.value)), i.groupToggle.addEventListener("change", () => T(i.xmlSearch.value)), i.hierarchy.addEventListener("click", e => {
+                let t = e.target.closest(".hierarchy-item");
+                if (t && i.hierarchy.contains(t)) {
+                    if (e.target.closest(".expand-toggle") || e.target.closest(".visibility-toggle")) return;
+                    R(e, t)
+                }
+            }), [i.filterId, i.filterMinWidth, i.filterMinHeight].forEach(e => e.addEventListener("input", ei)), i.canvasWidthInput.addEventListener("change", E), i.canvasHeightInput.addEventListener("change", E), i.highlightColor.addEventListener("input", () => {
+                localStorage.setItem("highlightColor", i.highlightColor.value), W(), A()
+            }), i.borderToggle.addEventListener("change", e => {
+                o.forEach(t => t.div.classList.toggle("persistent-border", e.target.checked))
+            }), i.animatedBorders.addEventListener("change", A), i.stretchUV.addEventListener("change", () => {
+                o.forEach(elementData => updateElementBackground(elementData));
+            }), i.previewModeBtn.addEventListener("click", eu), i.themeToggleBtn.addEventListener("click", () => {
+                document.body.classList.toggle("light-mode"), document.body.classList.contains("light-mode") ? (i.themeToggleBtn.textContent = "Dark Mode", localStorage.setItem("theme", "light")) : (i.themeToggleBtn.textContent = "Light Mode", localStorage.setItem("theme", "dark"))
+            }), i.undoBtn.addEventListener("click", X), i.redoBtn.addEventListener("click", Y), i.scaleAllBtn.addEventListener("click", () => i.scaleAllModal.classList.remove("hidden")), i.cancelScaleAllBtn.addEventListener("click", () => i.scaleAllModal.classList.add("hidden")), i.applyScaleAllBtn.addEventListener("click", O), i.inspector.addEventListener("wheel", e => {
+                e.preventDefault();
+                let t = parseInt(i.zoomSlider.value, 10);
+                e.deltaY < 0 ? t += 25 : t -= 25, t = Math.max(parseInt(i.zoomSlider.min, 10), Math.min(parseInt(i.zoomSlider.max, 10), t)), i.zoomSlider.value = t, i.zoomInput.value = t, eo()
+            });
+            let P, V = () => {
+                clearTimeout(P), P = setTimeout(() => {
+                    updateElementPropertiesFromInput(), D()
+                }, 250)
+            };
+
+            function q() {
+                g = [], p = -1, j()
+            }
+
+            function D() {
+                if (v || u === 'xml' || u === 'font') return;
+                p < g.length - 1 && (g = g.slice(0, p + 1));
+                let e = new Map;
+                o.forEach((t, i) => {
+                    let r = {
+                        ...t
+                    };
+                    r.originalUvRect && (r.originalUvRect = {
+                        ...t.originalUvRect
+                    }), r.uvRect && (r.uvRect = {
+                        ...t.uvRect
+                    }), e.set(i, r)
+                }), g.push(e), p++, j(), K()
+            }
+
+            function F(e) {
+                v = !0, o = new Map, e.forEach((e, t) => {
+                    let i = {
+                        ...e
+                    };
+                    e.originalUvRect && (i.originalUvRect = {
+                        ...e.originalUvRect
+                    }), e.uvRect && (i.uvRect = {
+                        ...e.uvRect
+                    }), o.set(t, i)
+                }), o.forEach(e => {
+                    G(e), e.div && e.uvRect && (e.div.style.backgroundPosition = `-${e.uvRect.x}px -${e.uvRect.y}px`)
+                }), A(), K(), v = !1
+            }
+
+            function X() {
+                p > 0 && (F(g[--p]), j())
+            }
+
+            function Y() {
+                p < g.length - 1 && (F(g[++p]), j())
+            }
+
+            function j() {
+                const hasHistory = p > 0;
+                const hasFuture = p < g.length - 1;
+                const isEditableTab = u === 'ui' || u === 'texture';
+                i.undoBtn.disabled = !hasHistory || !isEditableTab;
+                i.redoBtn.disabled = !hasFuture || !isEditableTab;
+            }
+
+            async function G(e) {
+                if (!e || !e.div) return;
+                e.div.style.left = `${e.x}px`;
+                e.div.style.top = `${e.y}px`;
+                e.div.style.width = `${e.w}px`;
+                e.div.style.height = `${e.h}px`;
+                if (e.hierarchyLi) {
+                    H(e.hierarchyLi.querySelector(".info-div"), e.windowId, e.w, e.h, e.x, e.y);
+                }
+                await updateElementBackground(e);
+            }
+
+            function O() {
+                let e = parseFloat(i.globalScaleInput.value);
+                if (isNaN(e)) {
+                    alert("Invalid scale percentage.");
+                    return
+                }
+                let t = e / 100;
+                o.forEach(e => {
+                    e.x *= t, e.y *= t, e.w *= t, e.h *= t, e.originalW *= t, e.originalH *= t, G(e)
+                }), D(), i.scaleAllModal.classList.add("hidden")
+            }
+
+            function K() {
+                let e = p > 0 || xmlDirty;
+                i.saveChangesBtn.disabled = !e, i.saveChangesBtn.textContent = e ? "Save Changes" : "No Changes to Save"
+            }
+
+            function Z(e, t) {
+                let i = void 0 === t;
+                e.forEach(e => {
+                    let r = o.get(String(e));
+                    if (r) {
+                        let l = i ? "none" === r.div.style.display : t;
+                        r.div.style.display = l ? "" : "none";
+                        let a = r.hierarchyLi.querySelector(".visibility-toggle");
+                        a && (a.style.opacity = l ? "1" : "0.3")
+                    }
+                })
+            }
+
+            function J(e) {
+                if (0 === e.size) return;
+                let t = new Set(o.keys()),
+                    i = new Set;
+                e.forEach(e => (function e(t) {
+                    if (i.has(t)) return;
+                    i.add(t);
+                    let r = o.get(t);
+                    if (r && r.hierarchyLi) {
+                        let l = r.hierarchyLi.querySelector(".child-container");
+                        l && l.querySelectorAll(".hierarchy-item").forEach(t => e(t.dataset.id))
+                    }
+                })(e));
+                let r = [...t].filter(e => !i.has(e));
+                Z(r, !1), Z([...i], !0)
+            }
+
+            function Q(e) {
+                i.textureList.innerHTML = "";
+                let t = [...e.keys()].sort();
+                for (let r of t) {
+                    let l = e.get(r),
+                        a = document.createElement("div");
+                    a.className = "texture-item";
+                    let o = document.createElement("div");
+                    o.className = "texture-item-name", o.textContent = r;
+                    let n = document.createElement("div");
+                    n.className = "texture-item-users", n.innerHTML = `Used by: ${l.length} elements`, a.appendChild(o), a.appendChild(n), a.onclick = () => ee(r, l), i.textureList.appendChild(a)
+                }
+            }
+            async function ee(e, t) {
+                i.textureModalTitle.textContent = `${e} (${t.length} usages)`;
+                let r = i.textureModalCanvas,
+                    l = i.textureModalHighlightCanvas,
+                    a = r.getContext("2d"),
+                    o = l.getContext("2d"),
+                    n = i.textureModalUserList;
+                n.innerHTML = "";
+                let d = e => {
+                    if (!e) return null;
+                    let {
+                        x: t,
+                        y: r,
+                        w: l,
+                        h: a
+                    } = e;
+                    return i.swapWH.checked ? {
+                        x: t,
+                        y: r,
+                        w: a,
+                        h: l
+                    } : {
+                        x: t,
+                        y: r,
+                        w: l,
+                        h: a
+                    }
+                },
+                    s = e => {
+                        if (o.clearRect(0, 0, l.width, l.height), !e) return;
+                        let t = d(e);
+                        o.strokeStyle = "#FBBF24", o.lineWidth = 2, o.strokeRect(t.x, t.y, t.w, t.h)
+                    };
+                try {
+                    let c = await ec(e),
+                        h = new Image;
+                    h.onload = () => {
+                        const modalContent = i.textureModal.querySelector('.bg-gray-800');
+                        const canvasContainer = i.textureModalCanvas.parentElement;
+
+                        canvasContainer.style.width = `${h.width}px`;
+                        canvasContainer.style.height = `${h.height}px`;
+
+                        [r, l].forEach(e => {
+                            e.width = h.width, e.height = h.height
+                        });
+
+                        a.drawImage(h, 0, 0), a.strokeStyle = "rgba(251, 191, 36, 0.4)", a.lineWidth = 1, t.forEach(e => {
+                            let t = d(e.rect);
+                            a.strokeRect(t.x, t.y, t.w, t.h);
+                            let i = document.createElement("div");
+                            i.className = "texture-user-item", i.textContent = `ID: ${e.id}`, i.dataset.id = e.id, i.addEventListener("mouseover", () => {
+                                s(e.rect), i.classList.add("highlighted")
+                            }), i.addEventListener("mouseout", () => {
+                                s(null), i.classList.remove("highlighted")
+                            }), n.appendChild(i)
+                        }), i.textureModal.classList.remove("hidden")
+                    }, h.src = c.url
+                } catch (u) {
+                    alert(`Could not load texture ${e}: ${u.message}`)
+                }
+            }
+
+            function et(e, t) {
+                let i = e.querySelector(".child-container"),
+                    r = e.querySelector(".expand-toggle");
+                if (i && r) {
+                    let l = "none" === i.style.display,
+                        a = void 0 !== t ? t : !l;
+                    i.style.display = a ? "none" : "", r.innerHTML = a ? "[+]" : "[-]"
+                }
+            }
+
+            function ei() {
+                let e = i.filterId.value.toLowerCase(),
+                    t = parseInt(i.filterMinWidth.value, 10) || 0,
+                    r = parseInt(i.filterMinHeight.value, 10) || 0;
+                if (!e && !t && !r) {
+                    o.forEach(e => {
+                        e.hierarchyLi && (e.hierarchyLi.classList.remove("filtered"), e.hierarchyLi.style.display = "")
+                    });
+                    return
+                }
+                let l = new Set;
+                o.forEach((a, o) => {
+                    let n = parseInt(i.swapWH.checked ? a.h : a.w, 10),
+                        d = parseInt(i.swapWH.checked ? a.w : a.h, 10),
+                        s = e.split(",").map(e => e.trim()).filter(e => e),
+                        c = 0 === s.length || s.some(e => a.windowId.toLowerCase().includes(e));
+                    c && n >= t && d >= r && l.add(o)
+                });
+                let a = new Set;
+                l.forEach(e => {
+                    let t = e;
+                    for (; t && !a.has(t);) {
+                        a.add(t);
+                        let i = o.get(t);
+                        if (!i || !i.hierarchyLi) break;
+                        let r = i.hierarchyLi.parentElement?.closest(".hierarchy-item");
+                        t = r ? r.dataset.id : null
+                    }
+                }), o.forEach((e, t) => {
+                    let i = a.has(t);
+                    if (e.hierarchyLi && (e.hierarchyLi.style.display = i ? "" : "none", i)) {
+                        let r = Array.from(e.hierarchyLi.querySelectorAll(".hierarchy-item")).some(e => a.has(e.dataset.id));
+                        r && et(e.hierarchyLi, !1)
+                    }
+                })
+            }
+            i.propX.addEventListener("input", V), i.propY.addEventListener("input", V), i.propScaleValue.addEventListener("input", V), i.propUvX.addEventListener("input", V), i.propUvY.addEventListener("input", V), i.propUvW.addEventListener("input", V), i.propUvH.addEventListener("input", V), i.propFontSize.addEventListener("input", V),
+                i.saveChangesBtn.addEventListener("click", async () => {
+                    if (!r || !s) return;
+
+                    let finalXmlString;
+                    if (u === 'xml') {
+                        finalXmlString = i.xmlEditorTextarea.value;
+                        let parser = new DOMParser();
+                        let xmlDoc = parser.parseFromString(finalXmlString, "application/xml");
+                        if (xmlDoc.querySelector("parsererror")) {
+                            alert("Invalid XML detected in the editor. Please correct the errors before saving.");
+                            return;
+                        }
+                    } else {
+                        // Re-parse the original content to ensure we have a clean slate
+                        let parser = new DOMParser();
+                        let xmlDoc = parser.parseFromString(c, "application/xml");
+                        if (xmlDoc.querySelector("parsererror")) {
+                            alert("Could not save changes due to an error in the original XML structure. Please check the XML Editor tab.");
+                            return;
+                        }
+                        // Apply changes from the data model to the fresh XML document
+                        o.forEach((e, t) => {
+                            let r = xmlDoc.querySelector(`BaseWndProperty[WindowID="${t}"]`);
+                            if (r) {
+                                r.setAttribute("WindowLeft", Math.round(e.x));
+                                r.setAttribute("WindowTop", Math.round(e.y));
+                                let l = i.swapWH.checked ? e.h : e.w;
+                                let a = i.swapWH.checked ? e.w : e.h;
+                                r.setAttribute("WindowWidth", Math.round(l));
+                                r.setAttribute("WindowHeight", Math.round(a));
+
+                                if (e.fontSize !== undefined) {
+                                    r.setAttribute("FontIndex", e.fontSize);
+                                }
+
+                                if (e.originalUvRect) {
+                                    let o = r.querySelector("BackGroundMap");
+                                    if (o) {
+                                        let n = o.querySelector("NorUV");
+                                        n || (n = xmlDoc.createElement("NorUV"), o.appendChild(n));
+                                        n.setAttribute("NorUVLeft", Math.round(e.originalUvRect.x));
+                                        n.setAttribute("NorUVTop", Math.round(e.originalUvRect.y));
+                                        n.setAttribute("NorUVWidth", Math.round(e.originalUvRect.w));
+                                        n.setAttribute("NorUVHeight", Math.round(e.originalUvRect.h));
+                                    }
+                                }
+                            }
+                        });
+                        finalXmlString = new XMLSerializer().serializeToString(xmlDoc);
+                    }
+
+                    try {
+                        let e = await r.getDirectoryHandle("UI-Editor", { create: !0 });
+                        let t = await e.getDirectoryHandle("originals", { create: !0 });
+                        let l = await e.getDirectoryHandle("versions", { create: !0 });
+
+                        try {
+                            await t.getFileHandle(s);
+                        } catch (a) {
+                            if ("NotFoundError" === a.name) {
+                                let n = await t.getFileHandle(s, { create: !0 });
+                                let d = await n.createWritable();
+                                await d.write(c); // Write original content
+                                await d.close();
+                            } else { throw a; }
+                        }
+
+                        let fileHandle = await r.getFileHandle(s, { create: true });
+                        let writable = await fileHandle.createWritable();
+                        await writable.write(finalXmlString);
+                        await writable.close();
+
+                        let y = new Date().toISOString().slice(0, 19).replace(/T/g, "_").replace(/:/g, "-"),
+                            f = s.replace(/\.xml$/i, ""),
+                            x = `${f}_${y}.xml`,
+                            w = await l.getFileHandle(x, { create: !0 });
+                        writable = await w.createWritable();
+                        await writable.write(finalXmlString);
+                        await writable.close();
+
+                        alert(`Successfully saved changes for ${s}. A versioned copy was created.`);
+
+                        // Reload the file to reflect saved changes and new backups
+                        await I(s);
+                    } catch ($) {
+                        console.error("Save Error:", $);
+                        alert(`An error occurred while saving: ${$.message}`);
+                    }
+                });
+            let er = null;
+
+            function el(e, r) {
+                e.preventDefault(), e.stopPropagation(), er = r;
+                let l = r.dataset.id;
+                n.has(l) || (n.clear(), n.add(l), W(), A()), i.contextMenu.innerHTML = `<div class="context-menu-item" id="ctx-isolate">Isolate Selection (${n.size})</div><div class="context-menu-item" id="ctx-show-all">Show All</div><hr class="border-gray-600 my-1"><div class="context-menu-item" id="ctx-hide-children">Hide Children</div><div class="context-menu-item" id="ctx-show-children">Show Children</div><hr class="border-gray-600 my-1"><div class="context-menu-item" id="ctx-expand">Expand All</div><div class="context-menu-item" id="ctx-collapse">Collapse All</div>`, i.contextMenu.style.left = `${e.clientX}px`, i.contextMenu.style.top = `${e.clientY}px`, i.contextMenu.classList.remove("hidden"), t("ctx-isolate").onclick = () => J(n), t("ctx-show-all").onclick = () => {
+                    Z([...o.keys()], !0), ei()
+                };
+                let a = ea(er).map(e => e.dataset.id);
+                t("ctx-hide-children").onclick = () => Z(a, !1), t("ctx-show-children").onclick = () => Z(a, !0), t("ctx-expand").onclick = () => [er, ...ea(er)].forEach(e => et(e, !1)), t("ctx-collapse").onclick = () => [er, ...ea(er)].forEach(e => et(e, !0))
+            }
+
+            function ea(e, t = []) {
+                return e.querySelector(".child-container").querySelectorAll(".hierarchy-item").forEach(e => {
+                    t.push(e), ea(e, t)
+                }), t
+            }
+
+            function eo() {
+                let e = i.zoomSlider.value / 100,
+                    t = `scale(${e})`;
+                document.documentElement.style.setProperty("--canvas-transform", t), i.viewerCanvas.style.transform = t, i.rulerCanvas.style.transform = t, i.textureEditorCanvas.style.transform = t, i.textureRulerCanvas.style.transform = t, i.rulerTool.checked && ("ui" === u ? en(i.rulerCanvas, h.width, h.height) : "texture" === u && en(i.textureRulerCanvas, i.textureEditorCanvas.width, i.textureEditorCanvas.height)), eh()
+            }
+
+            function en(e, t, i) {
+                if (!t || !i || !e) return;
+                e.width = t, e.height = i;
+                let r = e.getContext("2d");
+                r.clearRect(0, 0, t, i);
+                let l = getComputedStyle(document.body).getPropertyValue("--text-primary");
+                r.strokeStyle = "rgba(128, 128, 128, 0.7)", r.fillStyle = l, r.font = "14px Fira Code", r.lineWidth = 1.5;
+                for (let a = 0; a <= t; a += 10) r.beginPath(), r.moveTo(a, 0), a % 100 == 0 ? (r.lineTo(a, 25), r.fillText(a, a + 5, 20)) : a % 50 == 0 ? r.lineTo(a, 15) : r.lineTo(a, 10), r.stroke();
+                for (let o = 0; o <= i; o += 10) r.beginPath(), r.moveTo(0, o), o % 100 == 0 ? (r.lineTo(25, o), r.save(), r.translate(20, o + 5), r.rotate(-Math.PI / 2), r.fillText(o, 0, 0), r.restore()) : o % 50 == 0 ? r.lineTo(15, o) : r.lineTo(10, o), r.stroke()
+            }
+
+            async function applyXmlChangesAndReload() {
+                const xmlString = i.xmlEditorTextarea.value;
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(xmlString, "application/xml");
+
+                if (xmlDoc.querySelector("parsererror")) {
+                    alert("Cannot switch view: Invalid XML in editor. Please fix the errors.");
+                    ed('xml');
+                    return false;
+                }
+                c = xmlString;
+                q();
+                await M(xmlDoc);
+                eo();
+                D();
+                xmlDirty = false;
+                return true;
+            }
+
+            async function ed(e) {
+                if ((u === 'xml' || u === 'font') && u !== e) {
+                    if (xmlDirty || p > 0) {
+                        if (!confirm('You have unsaved changes. Switching views will apply these changes to the visual editor. Continue?')) {
+                            return;
+                        }
+                        const success = await applyXmlChangesAndReload();
+                        if (!success) return;
+                    }
+                }
+
+                u = e;
+                const isUi = e === 'ui';
+                const isTexture = e === 'texture';
+                const isXml = e === 'xml';
+                const isFont = e === 'font';
+
+                i.uiViewerTab.classList.toggle("active", isUi);
+                i.textureViewerTab.classList.toggle("active", isTexture);
+                i.xmlEditorTab.classList.toggle("active", isXml);
+                i.fontEditorTab.classList.toggle("active", isFont);
+
+                i.uiViewerPanel.classList.toggle("hidden", !isUi);
+                i.textureViewerPanel.classList.toggle("hidden", !isTexture);
+                i.xmlEditorPanel.classList.toggle("hidden", !isXml);
+                i.fontEditorPanel.classList.toggle("hidden", !isFont);
+
+                i.rulerCanvas.style.display = i.rulerTool.checked && isUi ? "block" : "none";
+                i.textureRulerCanvas.style.display = i.rulerTool.checked && isTexture ? "block" : "none";
+
+                j();
+                eo();
+            }
+
+            function es(e, t) {
+                e.addEventListener("mousemove", e => {
+                    if (!i.rulerTool.checked) return;
+                    let r = t.getBoundingClientRect(),
+                        l = t.width / r.width,
+                        a = Math.round((e.clientX - r.left) * l),
+                        o = Math.round((e.clientY - r.top) * l);
+                    a >= 0 && a <= t.width && o >= 0 && o <= t.height ? (i.coordsTooltip.textContent = `x: ${a}, y: ${o}`, i.coordsTooltip.style.left = `${e.clientX + 15}px`, i.coordsTooltip.style.top = `${e.clientY + 15}px`, i.coordsTooltip.classList.remove("hidden")) : i.coordsTooltip.classList.add("hidden")
+                }), e.addEventListener("mouseleave", () => i.coordsTooltip.classList.add("hidden"))
+            }
+            async function ec(e) {
+                if (l.has(e)) return l.get(e);
+                try {
+                    let t = await r.getFileHandle(e),
+                        i = await t.getFile(),
+                        a = await i.arrayBuffer(),
+                        o;
+                    if (e.toLowerCase().endsWith(".dds")) {
+                        let n = DDSParser.parse(a),
+                            d = DDSParser.decode(n),
+                            s = document.createElement("canvas");
+                        s.width = d.width, s.height = d.height;
+                        let c = s.getContext("2d"),
+                            h = new ImageData(d.data, d.width, d.height);
+                        c.putImageData(h, 0, 0), o = {
+                            url: s.toDataURL(),
+                            width: d.width,
+                            height: d.height
+                        }
+                    } else {
+                        let u = new Blob([a]),
+                            g = URL.createObjectURL(u),
+                            p = new Image,
+                            v = new Promise((e, t) => {
+                                p.onload = () => e({
+                                    url: g,
+                                    width: p.width,
+                                    height: p.height
+                                }), p.onerror = t
+                            });
+                        p.src = g, o = await v
+                    }
+                    return l.set(e, o), o
+                } catch (m) {
+                    throw Error(`Asset [${e}]: ${m.message}`)
+                }
+            }
+
+            function eh() {
+                if ("ui" !== u || !s) {
+                    i.minimap.classList.add("hidden");
+                    return
+                }
+                i.minimap.classList.remove("hidden");
+                let e = i.minimapCanvas,
+                    t = e.getContext("2d"),
+                    r = i.inspector.getBoundingClientRect(),
+                    l = e.width / h.width,
+                    a = e.height / h.height,
+                    n = Math.min(l, a);
+                t.clearRect(0, 0, e.width, e.height), t.save(), t.scale(n, n), o.forEach(e => {
+                    "none" !== e.div.style.display && (t.fillStyle = "rgba(128, 128, 128, 0.5)", t.fillRect(e.x, e.y, e.w, e.h))
+                }), t.restore();
+                let d = i.minimapViewport;
+                d.style.width = `${r.width / i.zoomSlider.value * 100 * n}px`, d.style.height = `${r.height / i.zoomSlider.value * 100 * n}px`, d.style.left = `${i.inspector.scrollLeft / i.zoomSlider.value * 100 * n}px`, d.style.top = `${i.inspector.scrollTop / i.zoomSlider.value * 100 * n}px`
+            }
+
+            function eu() {
+                if (!s) return;
+                let e = i.fullscreenPreviewModal,
+                    t = i.fullscreenPreviewContent;
+                t.innerHTML = "";
+                let r = i.viewerCanvas.cloneNode(!0);
+                r.querySelectorAll(".ui-element").forEach(e => {
+                    e.classList.remove("highlight", "persistent-border"), e.style.outline = "none"
+                });
+                let l = .9 * window.innerWidth,
+                    a = .9 * window.innerHeight,
+                    o = parseInt(r.style.width, 10),
+                    n = parseInt(r.style.height, 10);
+                r.style.transform = `scale(${Math.min(l / o, a / n)})`, r.style.transformOrigin = "center center", t.appendChild(r), e.classList.remove("hidden"), window.addEventListener("keydown", ep)
+            }
+
+            function eg() {
+                i.fullscreenPreviewModal.classList.add("hidden"), i.fullscreenPreviewContent.innerHTML = "", window.removeEventListener("keydown", ep)
+            }
+
+            function ep(e) {
+                "Escape" === e.key && eg()
+            }
+            i.rulerTool.addEventListener("change", () => {
+                let e = i.rulerTool.checked;
+                i.rulerCanvas.style.display = e && "ui" === u ? "block" : "none", i.textureRulerCanvas.style.display = e && "texture" === u ? "block" : "none", e ? eo() : i.coordsTooltip.classList.add("hidden")
+            }), i.uiViewerTab.addEventListener("click", () => ed("ui")), i.textureViewerTab.addEventListener("click", () => ed("texture")), i.xmlEditorTab.addEventListener("click", () => ed("xml")), i.fontEditorTab.addEventListener("click", () => ed("font")), es(i.textureInspector, i.textureEditorCanvas), i.viewerCanvas.addEventListener("mousemove", e => {
+                let t = i.viewerCanvas.getBoundingClientRect(),
+                    r = h.width / t.width,
+                    l = (e.clientX - t.left) * r,
+                    a = (e.clientY - t.top) * r;
+
+                let tooltipContent = '';
+
+                if (i.rulerTool.checked) {
+                    const coordX = Math.round(l);
+                    const coordY = Math.round(a);
+                    if (coordX >= 0 && coordX <= h.width && coordY >= 0 && coordY <= h.height) {
+                        tooltipContent += `<div>x: ${coordX}, y: ${coordY}</div>`;
+                    }
+                }
+
+                let n = [];
+                o.forEach(elementData => {
+                    "none" !== elementData.div.style.display && l >= elementData.x && l <= elementData.x + elementData.w && a >= elementData.y && a <= elementData.y + elementData.h && n.push(elementData)
+                }), n.sort((e, t) => parseInt(t.div.style.zIndex, 10) - parseInt(e.div.style.zIndex, 10));
+                let d = new Set(n.map(e => e.windowId));
+                y.forEach(e => {
+                    if (!d.has(e)) {
+                        let t = o.get(e);
+                        t && (t.div.classList.remove("highlight"), t.hierarchyLi.classList.remove("highlight"))
+                    }
+                });
+                let s = !0;
+                n.forEach(e => {
+                    !y.has(e.windowId) && (e.div.classList.add("highlight"), e.hierarchyLi.classList.add("highlight"), s && (e.hierarchyLi.scrollIntoView({
+                        block: "nearest",
+                        behavior: "smooth"
+                    }), s = !1))
+                }), y = d;
+
+                if (n.length > 0) {
+                    if (tooltipContent) tooltipContent += '<hr class="tooltip-hr">';
+                    tooltipContent += n.map(e => `<div>ID: ${e.windowId}</div>`).join("");
+                }
+
+                if (tooltipContent) {
+                    i.elementTooltip.innerHTML = tooltipContent;
+                    i.elementTooltip.classList.remove("hidden");
+                    i.elementTooltip.style.left = `${e.clientX + 15}px`;
+                    i.elementTooltip.style.top = `${e.clientY + 15}px`;
+                } else {
+                    i.elementTooltip.classList.add("hidden");
+                }
+
+            }), i.viewerCanvas.addEventListener("mouseleave", () => {
+                y.forEach(e => {
+                    let t = o.get(e);
+                    t && (t.div.classList.remove("highlight"), t.hierarchyLi.classList.remove("highlight"))
+                }), y.clear(), i.elementTooltip.classList.add("hidden")
+            }), i.inspector.addEventListener("scroll", eh), i.fullscreenPreviewModal.addEventListener("click", eg), i.closeTextureModal.onclick = () => i.textureModal.classList.add("hidden"), window.addEventListener("click", () => i.contextMenu.classList.add("hidden"));
+
+            i.xmlEditorTextarea.addEventListener('input', () => {
+                xmlDirty = true;
+                K();
+            });
+
+
+            async function updateElementBackground(elementData) {
+                const {
+                    div,
+                    textureName,
+                    uvRect,
+                    w,
+                    h
+                } = elementData;
+                if (!div || !textureName || textureName === 'N/A' || !uvRect) {
+                    div.style.backgroundImage = 'none';
+                    return;
+                }
+
+                try {
+                    const texture = await ec(textureName);
+                    div.style.backgroundImage = `url(${texture.url})`;
+
+                    if (texture && texture.width && texture.height) {
+                        if (i.stretchUV.checked && uvRect.w > 0 && uvRect.h > 0) {
+                            const scaleX = w / uvRect.w;
+                            const scaleY = h / uvRect.h;
+                            const newBgSizeX = texture.width * scaleX;
+                            const newBgSizeY = texture.height * scaleY;
+                            const newBgPosX = -uvRect.x * scaleX;
+                            const newBgPosY = -uvRect.y * scaleY;
+
+                            div.style.backgroundSize = `${newBgSizeX}px ${newBgSizeY}px`;
+                            div.style.backgroundPosition = `${newBgPosX}px ${newBgPosY}px`;
+
+                        } else {
+                            div.style.backgroundSize = `${texture.width}px ${texture.height}px`;
+                            div.style.backgroundPosition = `-${uvRect.x}px -${uvRect.y}px`;
+                        }
+                    } else {
+                        div.style.backgroundSize = "100% 100%";
+                    }
+                } catch (error) {
+                    console.warn(`Could not apply background for element ${elementData.windowId}: ${error.message}`);
+                    div.style.backgroundImage = 'none';
+                    div.style.backgroundColor = "rgba(255, 0, 255, 0.5)";
+                }
+            }
+
+            async function listBackupFiles(fileItemEl, activeFileHandle) {
+                const backupListContainer = fileItemEl.querySelector('.backup-list');
+                if (!backupListContainer) return;
+
+                backupListContainer.innerHTML = '';
+                const baseName = activeFileHandle.name.replace(/\.xml$/i, '');
+                let editorDirHandle;
+
+                try {
+                    editorDirHandle = await r.getDirectoryHandle('UI-Editor');
+                } catch (error) {
+                    return;
+                }
+
+                const backups = [];
+                try {
+                    const versionsDirHandle = await editorDirHandle.getDirectoryHandle('versions');
+                    for await (const entry of versionsDirHandle.values()) {
+                        if (entry.kind === 'file' && entry.name.startsWith(baseName + '_') && entry.name.toLowerCase().endsWith('.xml')) {
+                            backups.push(entry);
+                        }
+                    }
+                } catch (error) { /* versions folder doesn't exist */ }
+
+
+                if (backups.length > 0) {
+                    backups.sort((a, b) => b.name.localeCompare(a.name));
+                    for (const backupHandle of backups) {
+                        const li = document.createElement('div');
+                        li.className = 'backup-item';
+
+                        const nameSpan = document.createElement('span');
+                        nameSpan.textContent = backupHandle.name;
+                        nameSpan.title = backupHandle.name;
+                        nameSpan.style.overflow = 'hidden';
+                        nameSpan.style.textOverflow = 'ellipsis';
+                        nameSpan.style.whiteSpace = 'nowrap';
+
+                        const restoreBtn = document.createElement('button');
+                        restoreBtn.textContent = 'Restore';
+                        restoreBtn.className = 'restore-btn';
+                        restoreBtn.onclick = (e) => {
+                            e.stopPropagation();
+                            restoreBackup(backupHandle, activeFileHandle);
+                        };
+
+                        li.appendChild(nameSpan);
+                        li.appendChild(restoreBtn);
+                        backupListContainer.appendChild(li);
+                    }
+                }
+
+                let originalExists = false;
+                try {
+                    const originalsDirHandle = await editorDirHandle.getDirectoryHandle('originals');
+                    await originalsDirHandle.getFileHandle(activeFileHandle.name);
+                    originalExists = true;
+                } catch (error) { /* Original file doesn't exist */ }
+
+                if (originalExists) {
+                    if (backups.length > 0) {
+                        const separator = document.createElement('hr');
+                        separator.style.borderColor = 'var(--border-color)';
+                        separator.style.margin = '4px 0';
+                        backupListContainer.appendChild(separator);
+                    }
+
+                    const li = document.createElement('div');
+                    li.className = 'backup-item';
+
+                    const nameSpan = document.createElement('span');
+                    nameSpan.textContent = 'Original File';
+                    nameSpan.style.fontWeight = 'bold';
+                    nameSpan.style.color = '#6EE7B7';
+
+                    const restoreBtn = document.createElement('button');
+                    restoreBtn.textContent = 'Restore Original';
+                    restoreBtn.className = 'restore-btn';
+                    restoreBtn.style.backgroundColor = '#16A34A';
+                    restoreBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        restoreOriginal(activeFileHandle);
+                    };
+
+                    li.appendChild(nameSpan);
+                    li.appendChild(restoreBtn);
+                    backupListContainer.appendChild(li);
+                }
+
+
+                if (backupListContainer.hasChildNodes()) {
+                    backupListContainer.classList.remove('hidden');
+                }
+            }
+
+            async function restoreBackup(backupHandle, activeFileHandle) {
+                if (!confirm(`Are you sure you want to restore "${activeFileHandle.name}" from backup "${backupHandle.name}"?\n\nThis will overwrite the current file.`)) {
+                    return;
+                }
+
+                try {
+                    const backupFile = await backupHandle.getFile();
+                    const backupContent = await backupFile.text();
+                    const writable = await activeFileHandle.createWritable();
+                    await writable.write(backupContent);
+                    await writable.close();
+                    alert(`Successfully restored ${activeFileHandle.name}.`);
+                    await I(activeFileHandle.name);
+                } catch (error) {
+                    console.error('Restore Error:', error);
+                    alert(`Failed to restore file: ${error.message}`);
+                }
+            }
+
+            async function restoreOriginal(activeFileHandle) {
+                if (!confirm(`Are you sure you want to restore the original version of "${activeFileHandle.name}"?\n\nThis will overwrite the current file with the version saved before your first edit.`)) {
+                    return;
+                }
+
+                try {
+                    const editorDirHandle = await r.getDirectoryHandle('UI-Editor');
+                    const originalsDirHandle = await editorDirHandle.getDirectoryHandle('originals');
+                    const originalFileHandle = await originalsDirHandle.getFileHandle(activeFileHandle.name);
+                    const originalFile = await originalFileHandle.getFile();
+                    const originalContent = await originalFile.text();
+                    const writable = await activeFileHandle.createWritable();
+                    await writable.write(originalContent);
+                    await writable.close();
+                    alert(`Successfully restored original version of ${activeFileHandle.name}.`);
+                    await I(activeFileHandle.name);
+                } catch (error) {
+                    console.error('Restore Original Error:', error);
+                    alert(`Failed to restore original file: ${error.message}`);
+                }
+            }
+
+            function populateFontEditor() {
+                i.fontEditorList.innerHTML = '';
+                const elementsWithFont = [...o.values()].filter(el => el.fontSize !== undefined);
+
+                if (elementsWithFont.length === 0) {
+                    i.fontEditorList.innerHTML = '<p class="text-gray-400 p-2">No elements with font properties found in this file.</p>';
+                    return;
+                }
+
+                elementsWithFont.sort((a, b) => a.windowId.localeCompare(b.windowId, undefined, { numeric: true }));
+
+                for (const elementData of elementsWithFont) {
+                    const item = document.createElement('div');
+                    item.className = 'flex items-center justify-between p-2 rounded-lg hover:bg-gray-800';
+
+                    const idLabel = document.createElement('label');
+                    idLabel.textContent = `ID: ${elementData.windowId}`;
+                    idLabel.className = 'text-sm text-gray-300 flex-grow';
+                    idLabel.htmlFor = `font-input-${elementData.windowId}`;
+
+                    const fontInput = document.createElement('input');
+                    fontInput.type = 'number';
+                    fontInput.className = 'prop-editor-input w-24 text-sm';
+                    fontInput.id = `font-input-${elementData.windowId}`;
+                    fontInput.value = elementData.fontSize;
+
+                    fontInput.addEventListener('input', () => {
+                        const newSize = parseInt(fontInput.value, 10);
+                        if (!isNaN(newSize)) {
+                            elementData.fontSize = newSize;
+                            if (n.has(elementData.windowId)) {
+                                i.propFontSize.value = newSize;
+                            }
+                            p = 0; // Mark as dirty for saving
+                            K();
+                        }
+                    });
+
+                    item.appendChild(idLabel);
+                    item.appendChild(fontInput);
+                    i.fontEditorList.appendChild(item);
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>
