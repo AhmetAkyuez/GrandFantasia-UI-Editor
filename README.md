@@ -1,5 +1,5 @@
 # GrandFantasia-UI-Editor
-A modern, browser-based tool for visually editing the user interface (.xml) files for the game Grand Fantasia. Built with modern web technologies, this editor provides a real-time, intuitive interface to manipulate UI elements, textures, and properties, streamlining the UI modding process without needing to install anything.
+A modern, browser-based tool for visually editing the user interface (.xml) files for the game Grand Fantasia. Built with modern web technologies, this editor provides a real-time, intuitive interface to manipulate UI elements, textures, and properties, streamlining the UI modding process without needing to install anything. Everything is done locally in your browser and no files are upload to a server.
 
 <img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/0e6a3d0f-8d64-4bb0-aa1c-82a2d19df2f0" />
 
@@ -33,3 +33,31 @@ This is a list of current bugs that I am aware of and a list of features that I 
 
 ## Planned features
 - Some elements cannot simply be changed in their scale e.g. the `inventory.xml`. My guess is that this is because these UI elements are changed dynamically by functions which have their sizes written statically. Interface elements which are static in their layout and in their number of elements can be scaled without any problems e.g. the `ShortcutBar.xml`
+
+## Quick Guide to increase elements Size:
+1. Open the tool as described above
+2. Open an element and click the rescale button in the toolbar <br> <img width="1876" height="542" alt="image" src="https://github.com/user-attachments/assets/02d49abc-f03f-44b6-9d71-83ed11e03629" />
+3. Enter in a value and click save.
+4. Restart the game to fully reload the UI
+
+### List of files that I highly recommend to increase in size:
+I would generally recommend you to increase most of the elements as you want as the process is extremely quick and simple to test. Do note that some elements do not work properly when scaled e.g. `inventory.xml` because the amount of elements/boxes is not static.
+- `Menu.xml` This is your main hotbar
+- `Shortcut.bar` This is your additional skillbar
+- `Radar.xml` This is your minimap on the top-right of your screen
+- `BasicChar.xml` This is your main character status on the top left of your screen
+- `Equipment.xml` This is your character Sheet (Hotkey C)
+- `FullEnchantList.xml` This is the bar which shows _all_ the buffs.
+- `QuickEnchantList.xml` This is the bar which shows the buffs which are running out.
+- `ElfWork.xml`This is the list of your Sprites which opens when you want to craft something. <img width="861" height="658" alt="image" src="https://github.com/user-attachments/assets/81c216b6-a751-4b42-bd03-124ca4688f11" />
+- `Diary_QuestLog.xml` This you Questbook / Adventure Log (Hotkey L).
+- `MailList.xml` These are your Messages from e.g. Auctions
+- `Shop.xml` This is your Menu to buy
+- `GameItemWiki.xml` GF-Violet / This is your In-game Wiki (Hotkey H)
+
+### List of files that do not scale properly (not complete):
+- `ElfUI.xml`
+- `Inventory.xml`
+- `ElfInventory.xml`
+- `Storage.xml`
+- `WorldMap`
