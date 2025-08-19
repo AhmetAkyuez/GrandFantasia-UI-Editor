@@ -1,2 +1,30 @@
 # GrandFantasia-UI-Editor
-This is a Viewer and Editor for the XML files which define the UI of the Game Grand Fantasia
+A modern, browser-based tool for visually editing the user interface (.xml) files for the game Grand Fantasia. Built with modern web technologies, this editor provides a real-time, intuitive interface to manipulate UI elements, textures, and properties, streamlining the UI modding process without needing to install anything.
+
+<img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/0e6a3d0f-8d64-4bb0-aa1c-82a2d19df2f0" />
+
+## Usage
+1. Open the UIEditor.html file in a modern web browser (like Chrome, Firefox, or Edge).
+2. Click the "Select UI Folder" button and choose the root UI directory from your Grand Fantasia game client.
+3. Your browser will ask for permission to view and save files in this folder. You must grant permission for the editor to work correctly.
+4. Once the folder is loaded, the file list on the left will populate. Click on any .xml file to begin editing
+5. Use the various panels and tools to make your changes.
+6. Click the "Save Changes" button when you are finished.
+
+## Key Features
+- **Automatic Backups & Versioning**: Never lose your work. When you save, the tool automatically creates a timestamped backup. You can easily view and restore previous versions, including the original file, directly from the editor.
+- **Visual UI Editor**: Render .xml UI files in a canvas that you can pan and zoom. Select and move elements with your mouse for direct manipulation.
+- **Hierarchy Inspector**: View the complete tree structure of all UI elements. You can easily select, multi-select, hide, isolate, and navigate complex UI layouts.
+- **Property Editor**: Make precise adjustments to any selected element's position, scale, font size, and texture coordinates (UVs) through a simple input panel.
+- **Raw XML Editor**: A dedicated tab to view and edit the raw XML source code directly, offering full control for advanced users.
+- **Texture Inspector**: Automatically lists all textures (.dds files) used in the loaded UI. A popup viewer shows the texture atlas and highlights which elements use which part of the texture.
+- **Quick Rescale**: Lets the user quickly rescale all elements of a .xml file e.g. to increase the user-friendliness of the game interface for high resolution monitors.
+- **Global Font Editor**: A specialized tab that lists every element with a font property, allowing you to view and modify all font sizes in one convenient location.
+
+## Known Bugs / Missing features
+This is a list of current bugs that I am aware of and a list of features that I want to implement in the future.
+- The Font-Editor tab is not working
+- Some .xml files cannot be loaded
+- Some UV textures are not loaded in correctly
+- Preview mode is not centered
+- Grouping/Categorization of .xml files can be improved
